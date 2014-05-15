@@ -10,6 +10,7 @@ import signal
 # Ctrl-c handler
 def ctrlC():
     PixySensor.quit()
+    Rover.Stop()
 
 signal.signal(signal.SIGINT,ctrlC)
 
@@ -33,12 +34,13 @@ while 1:
     ConeAngle = PixySensor.getReading()
     print "Cone Angle:"+str(ConeAngle)
     if ConeAngle.value > 2:
-        #Rover.RotateRight(RotateSpeed)
+        Rover.RotateRight(RotateSpeed)
         print "Rotate Right"
     elif ConeAngle.value < -2:
         print "Rotate Left"
-        #Rover.RotateLeft(Rotate Speed)
+        Rover.RotateLeft(RotateSpeed)
     else:
         print "We found the Cone !!! Pixy Residual Angle:"+str(ConeAngle)
+        Rover.Stop()
     
 

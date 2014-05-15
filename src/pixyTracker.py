@@ -129,7 +129,7 @@ class pixyController(sensorState.Sensor):
       myReading = (1024-self.pan_gimbal.position)*(180/1024.0)-90                # ZarkonSensor takes one parameter, incrementBy
       print "\Pixy %s SPEAKS: %s" % (self.name_, myReading)
       self.postReading(myReading, 1)                       # "high" priority
-      time.sleep(0.1)
+      time.sleep(0.2)
       while self.sleepEvent_.isSet():                      # should we sleep?
         time.sleep(0.5)
     pixy_close()

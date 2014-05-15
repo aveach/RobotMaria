@@ -10,15 +10,23 @@ class Rover():
         self.speed = 0
         self.accel = 1500
         self.cycle_time = 200 #ms
+	self.state = "STOP"
+        self.new_state = None
         return
 
     def Stop(self):
+        self.state = "STOP"
         self.m1.setSpeed(0)
         self.m2.setSpeed(0)
         self.speed = 0
         return 
 
     def __Move__(self, speed, m1dir, m2dir):
+	if (self.new_state == self.state) and (speed == self.speed):
+            return True
+        if self.new_state != self.state:
+            self.Stop()
+
         # Makes sure speed is between 0-3200
         if speed > 3200:
             speed = 3200
@@ -27,31 +35,35 @@ class Rover():
         # Ramp up speed
         if speed > self.speed:
             self.speed_diff = speed-self.speed
-            self.speed_steps = self.speed_diff/int((self.accel*self.cycle_time)/1000)
-            for step in range(self.speed_steps):
-                self.speed += (self.accel*self.cycle_time)/1000
-                self.m1.setSpeed((m1dir)*self.speed)
-                self.m2.setSpeed((m2dir)*self.speed)
-                time.sleep(self.cycle_time)
-            # Reach final speed
-            self.speed = speed
+            self.speed_steps = 200 #self.speed_diff/int((self.accel*self.cycle_time)/1000)
+            #for step in range(self.speed_steps):
+            self.speed += self.speed_steps#(self.accel*self.cycle_time)/1000
             self.m1.setSpeed((m1dir)*self.speed)
             self.m2.setSpeed((m2dir)*self.speed)
+            #time.sleep(self.cycle_time)
+            # Reach final speed
+            #self.speed = speed
+            #self.m1.setSpeed((m1dir)*self.speed)
+            #self.m2.setSpeed((m2dir)*self.speed)
         return True
       
     def Forward(self, speed):
+        self.new_state = "FORWARD"
         return self.__Move__(speed,m1dir=1, m2dir=-1)
         
 
     def Reverse(self, speed):
+        self.new_state = "REVERSE"
         return self.__Move__(speed,m1dir=-1,m2dir=1)
         
 
     def RotateRight(self, speed):
+        self.new_state = "RIGHT"
         return self.__Move__(speed,m1dir=1,m2dir=1)
         
 
     def RotateLeft(self, speed):
+        self.new_state = "LEFT"
         return self.__Move__(speed,m1dir=-1,m2dir=-1)
         
 
