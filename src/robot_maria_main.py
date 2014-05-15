@@ -8,7 +8,7 @@ import time
 import signal
 
 # Ctrl-c handler
-def ctrlC():
+def ctrlC(signal, frame):
     PixySensor.quit()
     Rover.Stop()
 
@@ -16,19 +16,15 @@ signal.signal(signal.SIGINT,ctrlC)
 
 # Initialize rover
 Rover = rover.Rover()
-RotateSpeed = 1000
+RotateSpeed = 2500
 
-# Initialize sensorState
-#SensorState = sensorState.SensorState()
-#SensorState.start()
 
 # Initialize Pixi
 PixySensor = pixyTracker.pixyController('pixy')
 PixySensor.start(None)
-#sensorState.registerSensor(PixySensor)
 
 while 1:
-    time.sleep(0.5) # We will get data from pixy every 100 ms
+    time.sleep(0.1) # We will get data from pixy every 100 ms
 
     #Get data from pixy and rotate till we are facing the cone.
     ConeAngle = PixySensor.getReading()

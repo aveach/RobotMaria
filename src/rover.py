@@ -2,6 +2,7 @@
 import motor
 import time
 
+
 class Rover():
     def __init__(self):
         self.m1 = motor.MotorController('/dev/ttyACM0')
@@ -10,7 +11,8 @@ class Rover():
         self.speed = 0
         self.accel = 1500
         self.cycle_time = 200 #ms
-	self.state = "STOP"
+	self.speed_steps = 50
+        self.state = "STOP"
         self.new_state = None
         return
 
@@ -29,6 +31,7 @@ class Rover():
             self.Stop()
             self.state = self.new_state
             print "Switching direction, need to stop first"
+            return
 
         # Makes sure speed is between 0-3200
         if speed > 3200:
@@ -36,14 +39,23 @@ class Rover():
         elif speed < 0:
             speed = 0
         # Ramp up speed
-        print "Target speed: "+str(speed)+" Current Speed:"+str(self.speed)
-        if speed > self.speed:
-            #self.speed_diff = speed-self.speed
-            self.speed_steps = 100 #self.speed_diff/int((self.accel*self.cycle_time)/1000)
+        if self.state != "STOP":
+            print "Target speed: "+str(speed)+" Current Speed:"+str(self.speed)
+            if speed < self.speed:
+                self.sign = -1
+            elif speed > self.speed:
+                self.sign = 1
+            self.speed_diff = abs(speed-self.speed)
+            if self.speed_diff < 50:
+                self.speed += self.sign * self.speed_diff
+            else:
+                self.speed += self.sign * self.speed_steps
+            #self.speed_steps = 50 #self.speed_diff/int((self.accel*self.cycle_time)/1000)
             #for step in range(self.speed_steps):
-            self.speed += self.speed_steps#(self.accel*self.cycle_time)/1000
-            self.m1.setSpeed((m1dir)*self.speed)
-            self.m2.setSpeed((m2dir)*self.speed)
+            #self.speed += (self.accel*self.cycle_time)/1000
+            self.m1.setSpeed(int((m1dir)*self.speed))
+            self.m2.setSpeed(int((m2dir)*self.speed))
+            
             #time.sleep(self.cycle_time)
             # Reach final speed
             #self.speed = speed
@@ -63,12 +75,12 @@ class Rover():
 
     def RotateRight(self, speed):
         self.new_state = "RIGHT"
-        return self.__Move__(speed,m1dir=1,m2dir=1)
+        return self.__Move__(speed,m1dir=1,m2dir=-0.5)
         
 
     def RotateLeft(self, speed):
         self.new_state = "LEFT"
-        return self.__Move__(speed,m1dir=-1,m2dir=-1)
+        return self.__Move__(speed,m1dir=0.5,m2dir=-1)
         
 
     def Reset(self):
