@@ -93,30 +93,28 @@ class pixyController(sensorState.Sensor):
 
   def PixyFullScan(self):
     # Doesn't work need further investigation on how the servo is controlled.
-    self.scan_step = int(1000/4)
+    self.scan_step = int(1000/6)
     self.raw_position = 0
     self.count = 0
     # Go to location 0
-    #while self.pan_gimbal.position > self.raw_position:
-    self.pan_gimbal.update(-1*PIXY_RCS_MAX_POS)
+    self.pan_gimbal.position = 0
     set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
-    time.sleep(3)
-    print self.pan_gimbal.position
+    time.sleep(2)
+    print "Try to go to zero, position: "+str(self.pan_gimbal.position)
     while (self.pan_gimbal.position < 1000) and (self.count <= 0):
-        self.pan_gimbal.update(self.scan_step)
         set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
         time.sleep(1)
         print self.pan_gimbal.position
         self.count = pixy_get_blocks(BLOCK_BUFFER_SIZE, self.block)
-        self.raw_position += self.scan_step
-     
+        self.pan_gimbal.position += self.scan_step
     
     if self.count > 0:
-        print "Found cone while scanning. Position:"+str(self.raw_position-self.scan_step)
+        return True
     else:
         # Center Camera
-        self.pan_gimbal.update(500-self.pan_gimbal.position)
+        self.pan_gimbal.position = 500
         set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
+        return False
   
   # service the sensor, post the value
   def __threadProc(self, **kwargs):
