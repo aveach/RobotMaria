@@ -9,6 +9,7 @@ import signal
 import rgb
 import bump
 import wifiswitch
+import screenlogger
 
 QuitFlag = False
 
@@ -34,11 +35,12 @@ Bump.start(None)
 
 #Initialize Wifi Kill Switch
 KillSwitch = wifiswitch.WifiSwitch("KillSwitch", host_ip = "172.20.10.1")
-KillSwitch.start()
+#KillSwitch.start()
 
 # Initialize Pixy
-#PixySensor = pixyTracker.pixyController('pixy')
-#PixySensor.start(None)
+PixySensor = pixyTracker.pixyController('pixy')
+PixySensor.start(None)
+PixyTimeCounter = 0
 
 # Initialize WayPoint Sensr (GPS, COMPAS)
 WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
@@ -56,7 +58,7 @@ ScreenLog.Log("Robot Maria is Ready!")
 while not QuitFlag:
     time.sleep(0.1) # We will get data every 100 ms
     
-    if KillSwitch.getReading().value:
+    if True: #KillSwitch.getReading().value:
         if MachineState == "Pixy":
             #Get data from pixy and rotate till we are facing the cone.
             ConeAngle = PixySensor.getReading()
@@ -67,15 +69,38 @@ while not QuitFlag:
                 Led.allOff()
                 Led.turnOn('teal')
                 Rover.Stop()
+                Rover.Stop()    
+                Rover.Reverse(RotateSpeed)
+                time.sleep(3) 
+                Rover.Stop()    
+                Rover.RotateRight(RotateSpeed)
+                time.sleep(3) 
+                Rover.Stop()    
+                Rover.Forward(RotateSpeed)
+                time.sleep(3) 
+                Rover.Stop()    
+                Rover.RotateLeft(RotateSpeed)
+                time.sleep(3) 
+                Rover.Stop()    
+                MachineState = "WayPoint"
+                WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
             else:
                 Led.allOff()
                 Led.turnOn('purple')
-                if ConeAngle.value > 2:
+                if ConeAngle.value == None:
+                    Rover.RotateRight(RotateSpeed)
+                    PixyTimeCounter += 1
+                    if PixyTimeCounter > 50:
+                        MachineState = "WayPoint"
+                        WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
+                elif ConeAngle.value > 2:
                     Rover.RotateRight(RotateSpeed)
                     print "Rotate Right"
+                    ScreenLog.Log("I see Cone")
                 elif ConeAngle.value < -2:
                     print "Rotate Left"
                     Rover.RotateLeft(RotateSpeed)
+                    ScreenLog.Log("I see Cone")
                 else:
                     Rover.Forward(RotateSpeed)
                     print "Forward, Pixy Residual Angle:"+str(ConeAngle)
@@ -111,22 +136,30 @@ while not QuitFlag:
                else: 
                    if (WayPointData["currentHorizontalAccuracy"]+2 < 2) and (WayPointData["distanceToNextWaypoint"] < (WayPointData["currentHorizontalAccuracy"]+2)):
                        #print "We are close to cone, switch to Pixy. Distance: "+str(WayPointData["distanceToNextWaypoint"])
-                       ScreenLog.Log("Reached Waypoint: "+str(WayPointData["nextWaypoint"])
+                       ScreenLog.Log("Reached Waypoint: "+str(WayPointData["nextWaypoint"]))
                        ScreenLog.Log("Close to Cone, switching to Pixy Mode.")
                        Rover.Stop()
                        Led.allOff()
                        Led.turnOn('green')
                        time.sleep(0.5)
-                       WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
+                       if WayPointData["nextWaypointWeight"] == 1:
+                           MachineState = "Pixy"
+                           PixyTimeCounter = 0
+                       else:
+                           WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
                    elif WayPointData["distanceToNextWaypoint"] <= 2: 
                        #print "We are close to cone, switch to Pixy. Distance: "+str(WayPointData["distanceToNextWaypoint"])
-                       ScreenLog.Log("Reached Waypoint: "+str(WayPointData["nextWaypoint"])
+                       ScreenLog.Log("Reached Waypoint: "+str(WayPointData["nextWaypoint"]))
                        ScreenLog.Log("Close to Cone, switching to Pixy Mode.")
                        Rover.Stop()
                        Led.allOff()
                        Led.turnOn('green')
                        time.sleep(0.5)
-                       WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
+                       if WayPointData["nextWaypointWeight"] == 1:
+                           MachineState = "Pixy"
+                           PixyTimeCounter = 0
+                       else:
+                           WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
                    else:
                        Led.allOff()
                        Led.turnOn('blue')
