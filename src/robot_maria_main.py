@@ -28,38 +28,46 @@ RotateSpeed = 3200
 Led = rgb.RGBController()
 
 #Initialize Bump Sensor
-Bump = bump.BumpSensor()
+Bump = bump.BumpSensor("BumpSensor")
 Bump.start(None)
 
 # Initialize Pixy
-#PixySensor = pixyTracker.pixyController('pixy')
-#PixySensor.start(None)
+PixySensor = pixyTracker.pixyController('pixy')
+PixySensor.start(None)
 
 # Initialize WayPoint Sensr (GPS, COMPAS)
-WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
-WayPointSensor.start() 
+#WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
+#WayPointSensor.start() 
 HeadingDiff = 7
 
 # Initia; State
-MachineState = "WayPoint"
+MachineState = "Pixy"#"WayPoint"
 
 while not QuitFlag:
     time.sleep(0.1) # We will get data every 100 ms
+
     if MachineState == "Pixy":
         #Get data from pixy and rotate till we are facing the cone.
         ConeAngle = PixySensor.getReading()
         print "Cone Angle:"+str(ConeAngle)
-        if ConeAngle.value > 2:
-            Rover.RotateRight(RotateSpeed)
-            print "Rotate Right"
-        elif ConeAngle.value < -2:
-            print "Rotate Left"
-            Rover.RotateLeft(RotateSpeed)
+        print "Bump State:"+str(Bump.getReading().value)
+        if Bump.getReading().value == 1:
+            print "Bumped Cone or something"
+            Led.allOff()
+            Led.turnOn('teal')
+            Rover.Stop()
         else:
-            Rover.Forward(RotateSpeed)
-            print "We found the Cone !!! Pixy Residual Angle:"+str(ConeAngle)
-            #Rover.Stop()
-    
+            Led.allOff()
+            Led.turnOn('purple')
+            if ConeAngle.value > 2:
+                Rover.RotateRight(RotateSpeed)
+                print "Rotate Right"
+            elif ConeAngle.value < -2:
+                print "Rotate Left"
+                Rover.RotateLeft(RotateSpeed)
+            else:
+                Rover.Forward(RotateSpeed)
+                print "Forward, Pixy Residual Angle:"+str(ConeAngle)
 
     if MachineState == "WayPoint":
        WayPointData = WayPointSensor.getReading().value

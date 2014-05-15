@@ -21,7 +21,8 @@ class Rover():
         self.speed = [0,0]
         self.accel = 1500
         self.cycle_time = 200 #ms
-        self.speed_steps = 100
+        self.speed_steps = 800
+        self.speed_steps_stop = 100
         self.state = "STOP"
         self.new_state = None
         return
@@ -50,7 +51,7 @@ class Rover():
             self.Stop()
             #print "Stop first from or to reverse"
             return True
-    
+ 
         # Ramp up/down speed
         if self.new_state != "STOP":
             #print "Target speed: "+str(speed)+" Current Speed:"+str(self.speed)
@@ -64,7 +65,10 @@ class Rover():
                 if self.speed_diff < self.speed_steps:
                     self.speed[i] += self.sign * self.speed_diff
                 elif self.speed_diff >= self.speed_steps:
-                    self.speed[i] += self.sign * self.speed_steps
+                    if self.speed < 1000:
+                       self.speed[i] += self.sign * self.speed_steps_stop
+                    else:
+                       self.speed[i] += self.sign * self.speed_steps
             self.m1.setSpeed(self.speed[0])
             self.m2.setSpeed(self.speed[1])
             
@@ -82,12 +86,12 @@ class Rover():
 
     def RotateRight(self, speed):
         self.new_state = "RIGHT"
-        return self.__Move__(speed,m1dir=1,m2dir=-0.3)
+        return self.__Move__(speed,m1dir=1,m2dir=-0.4)
         
 
     def RotateLeft(self, speed):
         self.new_state = "LEFT"
-        return self.__Move__(speed,m1dir=0.3,m2dir=-1)
+        return self.__Move__(speed,m1dir=0.4,m2dir=-1)
         
 
     def Reset(self):
