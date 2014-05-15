@@ -11,7 +11,7 @@ class Rover():
         self.speed = 0
         self.accel = 1500
         self.cycle_time = 200 #ms
-	self.speed_steps = 50
+	self.speed_steps = 100
         self.state = "STOP"
         self.new_state = None
         return
@@ -28,9 +28,9 @@ class Rover():
             print "Dont update, speed and direction are the same as before"
             return True
         if self.new_state != self.state:
-            self.Stop()
+            if (self.new_state == "REVERSE") or (self.state == "REVERSE"):
+                self.Stop()
             self.state = self.new_state
-            print "Switching direction, need to stop first"
             return
 
         # Makes sure speed is between 0-3200
@@ -50,17 +50,9 @@ class Rover():
                 self.speed += self.sign * self.speed_diff
             else:
                 self.speed += self.sign * self.speed_steps
-            #self.speed_steps = 50 #self.speed_diff/int((self.accel*self.cycle_time)/1000)
-            #for step in range(self.speed_steps):
-            #self.speed += (self.accel*self.cycle_time)/1000
             self.m1.setSpeed(int((m1dir)*self.speed))
             self.m2.setSpeed(int((m2dir)*self.speed))
             
-            #time.sleep(self.cycle_time)
-            # Reach final speed
-            #self.speed = speed
-            #self.m1.setSpeed((m1dir)*self.speed)
-            #self.m2.setSpeed((m2dir)*self.speed)
         return True
       
     def Forward(self, speed):
@@ -75,12 +67,12 @@ class Rover():
 
     def RotateRight(self, speed):
         self.new_state = "RIGHT"
-        return self.__Move__(speed,m1dir=1,m2dir=-0.5)
+        return self.__Move__(speed,m1dir=1,m2dir=-0.3)
         
 
     def RotateLeft(self, speed):
         self.new_state = "LEFT"
-        return self.__Move__(speed,m1dir=0.5,m2dir=-1)
+        return self.__Move__(speed,m1dir=0.3,m2dir=-1)
         
 
     def Reset(self):
