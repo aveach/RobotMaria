@@ -291,7 +291,7 @@ class FakeWaypointSensor(Sensor):
 class WaypointSensor(Sensor):
   kSampleIntervalSecs = 0.2
   kExpectedReadSize = 21
-  kSerialPortName = "/dev/tty.usbserial-A603RM49"
+  kSerialPortName = "/dev/ttyUSB0" #"/dev/tty.usbserial-A603RM49"
   kSerialBaudRate = 38400
   kWriteTimeout = 1
   kRobotStateTextMaxSize = 20
