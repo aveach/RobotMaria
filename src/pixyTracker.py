@@ -158,7 +158,7 @@ class pixyController(sensorState.Sensor):
       else:
         # We want to know if no blocks were found, we will return None instead of servo position.
         myReading = None
-      print "\Pixy %s SPEAKS: %s" % (self.name_, myReading)
+      #print "\Pixy %s SPEAKS: %s" % (self.name_, myReading)
       self.postReading(myReading, 1)                       # "high" priority
       time.sleep(0.2)
       while self.sleepEvent_.isSet():                      # should we sleep?

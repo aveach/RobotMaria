@@ -86,12 +86,12 @@ class Rover():
 
     def RotateRight(self, speed):
         self.new_state = "RIGHT"
-        return self.__Move__(speed,m1dir=1,m2dir=-0.4)
+        return self.__Move__(speed,m1dir=1,m2dir=-0.3)
         
 
     def RotateLeft(self, speed):
         self.new_state = "LEFT"
-        return self.__Move__(speed,m1dir=0.4,m2dir=-1)
+        return self.__Move__(speed,m1dir=0.3,m2dir=-1)
         
 
     def Reset(self):

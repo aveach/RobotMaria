@@ -31,7 +31,7 @@ class BumpSensor(sensorState.Sensor):
             else:
                 self.didBump = 0
             time.sleep(0.1)
-            print "\Bump sensor %s SPEAKS: %s" % (self.name_, self.didBump)
+            #print "\Bump sensor %s SPEAKS: %s" % (self.name_, self.didBump)
             self.postReading(self.didBump, 1)                       # "high" priority
         
             while self.sleepEvent_.isSet():                      # should we sleep?

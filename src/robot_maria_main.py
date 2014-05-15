@@ -56,18 +56,18 @@ PixyCompassHeading = 0
 # Initialize WayPoint Sensr (GPS, COMPAS)
 WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
 WayPointSensor.start() 
-HeadingDiff = 7
+HeadingDiff = 3 #7
 ConeWayPointBuffer = []
 MAX_CONE_TIME = 3000 # (Min x 60)/0.1 
 ConeTimer = 0
 CurrentWayPoint = 0
 
 # constants for ramping motors
-FromStop = 13
+FromStop = 7
 WhileMoving = 5
 
 # Initia; State
-MachineState = "PixyScan"#"WayPoint"
+MachineState = "WayPoint"
 
 # Initialize screen logger message
 ScreenLog = screenlogger.ScreenLogger(WayPointSensor.logToScreen, verbose = True)
@@ -100,6 +100,7 @@ def SkipCurrentCone():
     WayPointData = WayPointSensor.getReading().value
     while WayPointData["nextWaypointWeight"] > 0: 
         WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
+	time.sleep(0.3)
     return
 
 
@@ -111,12 +112,13 @@ while not QuitFlag:
     ConeAngle = PixySensor.getReading()
     WayPointData = WayPointSensor.getReading().value
     if WayPointData != None:
-        if WayPointData["killSwitch"] == 0:
+        if True:#WayPointData["killSwitch"] == 0:
             if len(ConeWayPointBuffer) > 0: # We are currently in an area near a cone
                 if ConeTimer > MAX_CONE_TIME*WayPointData["nextWaypointWeight"]:
                     SkipCurrentCone()
                     ConeWayPointBuffer = []
                     MachineState = "WayPoint"
+                    ScreenLog.Log("MAX_CONE_TIME expired")
                 else:
                     ConeTimer += 1
 
@@ -135,7 +137,7 @@ while not QuitFlag:
                         # Do a 180 Degree turn right
                         for n in range(13):
                             Rover.RotateRight(RotateSpeed)
-                            time.sleep(0.2)
+                            time.sleep(0.3)
                         Rover.Stop() 
                     else:
                         MachineState = "WayPoint"
