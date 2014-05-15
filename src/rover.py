@@ -23,9 +23,12 @@ class Rover():
 
     def __Move__(self, speed, m1dir, m2dir):
 	if (self.new_state == self.state) and (speed == self.speed):
+            print "Dont update, speed and direction are the same as before"
             return True
         if self.new_state != self.state:
             self.Stop()
+            self.state = self.new_state
+            print "Switching direction, need to stop first"
 
         # Makes sure speed is between 0-3200
         if speed > 3200:
@@ -33,9 +36,10 @@ class Rover():
         elif speed < 0:
             speed = 0
         # Ramp up speed
+        print "Target speed: "+str(speed)+" Current Speed:"+str(self.speed)
         if speed > self.speed:
-            self.speed_diff = speed-self.speed
-            self.speed_steps = 200 #self.speed_diff/int((self.accel*self.cycle_time)/1000)
+            #self.speed_diff = speed-self.speed
+            self.speed_steps = 100 #self.speed_diff/int((self.accel*self.cycle_time)/1000)
             #for step in range(self.speed_steps):
             self.speed += self.speed_steps#(self.accel*self.cycle_time)/1000
             self.m1.setSpeed((m1dir)*self.speed)

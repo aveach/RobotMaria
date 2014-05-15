@@ -28,7 +28,7 @@ PixySensor.start(None)
 #sensorState.registerSensor(PixySensor)
 
 while 1:
-    time.sleep(0.1) # We will get data from pixy every 100 ms
+    time.sleep(0.5) # We will get data from pixy every 100 ms
 
     #Get data from pixy and rotate till we are facing the cone.
     ConeAngle = PixySensor.getReading()
