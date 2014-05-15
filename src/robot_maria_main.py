@@ -5,6 +5,13 @@ import sensorState
 import rover
 import pixyTracker
 import time
+import signal
+
+# Ctrl-c handler
+def ctrlC():
+    PixySensor.quit()
+
+signal.signal(signal.SIGINT,ctrlC)
 
 # Initialize rover
 Rover = rover.Rover()
@@ -25,9 +32,11 @@ while 1:
     #Get data from pixy and rotate till we are facing the cone.
     ConeAngle = PixySensor.getReading()
     print "Cone Angle:"+str(ConeAngle)
-    if ConeAngle > 2:
+    if ConeAngle.value > 2:
         #Rover.RotateRight(RotateSpeed)
-    elif ConeAngle < -2:
+        print "Rotate Right"
+    elif ConeAngle.value < -2:
+        print "Rotate Left"
         #Rover.RotateLeft(Rotate Speed)
     else:
         print "We found the Cone !!! Pixy Residual Angle:"+str(ConeAngle)

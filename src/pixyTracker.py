@@ -8,7 +8,7 @@ import sensorState
 sys.path.append("/home/debian/pixy/build/pantilt_in_python")
 from pixy import *
 from ctypes import *
-
+import time
 
 PIXY_MIN_X             =    0
 PIXY_MAX_X             =  319
@@ -74,14 +74,15 @@ class Gimbal ():
 class pixyController(sensorState.Sensor):
   def __init__(self, inName, inDefaultPriority=3, **kwargs):
     # boilerplate bookkeeping
-    Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc,
+    sensorState.Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc,
                     inSensorThreadProcKWArgs=kwargs, inDefaultPriority=3)
 
     # Initialize Pixy Interpreter thread #
     self.pixy_init_status = pixy_init()
 
-    if self. pixy_init_status != 0:
-      pixy_error(pixy_init_status)
+    if self.pixy_init_status != 0:
+      pixy_error(self.pixy_init_status)
+      print "We exited before declaring shit"
       return
 
     #  Initialize Gimbals #
@@ -114,20 +115,21 @@ class pixyController(sensorState.Sensor):
 
         # Apply corrections to the pan/tilt gimbals with the goal #
         # of putting the target in the center of Pixy's focus.    #
-        pan_gimbal.update(self.pan_error)
-        self.servo_position = (1024-pan_gimbal.position)*(180/1024.0)-90
+        self.pan_gimbal.update(self.pan_error)
+        self.servo_position = (1024-self.pan_gimbal.position)*(180/1024.0)-90
         #print "Pixy object found at {} degrees".format(self.servo_position)
 
-        set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, pan_gimbal.position)
+        set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
 
         if set_position_result < 0:
           print 'Error: pixy_rcs_set_position() '
           pixy_error(result)
           sys.exit(2)
 
-      myReading = (1024-pan_gimbal.position)*(180/1024.0)-90)                # ZarkonSensor takes one parameter, incrementBy
+      myReading = (1024-self.pan_gimbal.position)*(180/1024.0)-90                # ZarkonSensor takes one parameter, incrementBy
       print "\Pixy %s SPEAKS: %s" % (self.name_, myReading)
       self.postReading(myReading, 1)                       # "high" priority
-      time.sleep(1)
+      time.sleep(0.1)
       while self.sleepEvent_.isSet():                      # should we sleep?
         time.sleep(0.5)
+    pixy_close()
