@@ -31,6 +31,7 @@ class Rover():
             if (self.new_state == "REVERSE") or (self.state == "REVERSE"):
                 self.Stop()
             self.state = self.new_state
+            self.speed = int(speed/2)
             return
 
         # Makes sure speed is between 0-3200

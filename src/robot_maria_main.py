@@ -6,6 +6,7 @@ import rover
 import pixyTracker
 import time
 import signal
+import rgb
 
 QuitFlag = False
 
@@ -22,18 +23,20 @@ signal.signal(signal.SIGINT,ctrlC)
 Rover = rover.Rover()
 RotateSpeed = 3200
 
+#Initialize LED
+Led = rgb.RGBController()
 
 # Initialize Pixy
-PixySensor = pixyTracker.pixyController('pixy')
-PixySensor.start(None)
+#PixySensor = pixyTracker.pixyController('pixy')
+#PixySensor.start(None)
 
 # Initialize WayPoint Sensr (GPS, COMPAS)
-#WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
-#WayPointSensor.start() 
+WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
+WayPointSensor.start() 
 HeadingDiff = 7
 
 # Initia; State
-MachineState = "Pixy"#"WayPoint"
+MachineState = "WayPoint"
 
 while not QuitFlag:
     time.sleep(0.1) # We will get data every 100 ms
@@ -56,21 +59,43 @@ while not QuitFlag:
 
     if MachineState == "WayPoint":
        WayPointData = WayPointSensor.getReading().value
-       if WayPointData["distanceToNextWaypoint"] <= 12:
-           print "We are close to cone, switch to Pixy. Distance: "+str(WayPointData["distanceToNextWaypoint"]) 
-       else:
-           if WayPointData["currentHorizontalAccuracy"] < 20:
-               AngleDiff = WayPointData["headingToNextWaypoint"] - WayPointData["direction"]
-               if (AngleDiff < -180):
-                   AngleDiff += 360
-               elif (AngleDiff > 180):
-                   AngleDiff -= 360
-               
-               # Allow a small degree of diviation before taking action
-               if abs(AngleDiff) > HeadingDiff:
-                   if AngleDiff > 0:
-                       Rover.RotateRight(RotateSpeed)
+       if WayPointData != None:
+           if (WayPointData["currentHorizontalAccuracy"]+2 < 12) and (WayPointData["distanceToNextWaypoint"] < (WayPointData["currentHorizontalAccuracy"]+2)):
+               print "We are close to cone, switch to Pixy. Distance: "+str(WayPointData["distanceToNextWaypoint"])
+               Rover.Stop()
+               Led.allOff()
+               Led.turnOn('green')
+               time.sleep(5)
+               WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
+           elif WayPointData["distanceToNextWaypoint"] <= 12: 
+               print "We are close to cone, switch to Pixy. Distance: "+str(WayPointData["distanceToNextWaypoint"])
+               Rover.Stop()
+               Led.allOff()
+               Led.turnOn('green')
+               time.sleep(5)
+               WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
+           else:
+               Led.allOff()
+               Led.turnOn('blue')
+               if WayPointData["currentHorizontalAccuracy"] < 5000:#20:
+                   AngleDiff = WayPointData["headingToNextWaypoint"] - WayPointData["direction"]
+                   if (AngleDiff < -180):
+                       AngleDiff += 360
+                   elif (AngleDiff > 180):
+                       AngleDiff -= 360
+                   print "AngleDiff: "+str(AngleDiff) 
+                   # Allow a small degree of diviation before taking action
+                   if abs(AngleDiff) > HeadingDiff:
+                       if AngleDiff > 0:
+                           Rover.RotateRight(RotateSpeed)
+                           print "ROTATE RIGHT"
+                       else:
+                           Rover.RotateLeft(RotateSpeed)
+                           print "ROTATE LEFT"
                    else:
-                       Rover.RotateLeft(RotateSpeed)
-               else:
-                       Rover.Forward(RotateSpeed)
+                           Rover.Forward(RotateSpeed)
+                           print "FORWARD"
+       else:
+           print "Waypoint data is None"
+           Led.allOff()
+           Led.turnOn('red')
