@@ -7,6 +7,7 @@ import pixyTracker
 import time
 import signal
 import rgb
+import bump
 
 QuitFlag = False
 
@@ -26,6 +27,10 @@ RotateSpeed = 3200
 #Initialize LED
 Led = rgb.RGBController()
 
+#Initialize Bump Sensor
+Bump = bump.BumpSensor()
+Bump.start(None)
+
 # Initialize Pixy
 #PixySensor = pixyTracker.pixyController('pixy')
 #PixySensor.start(None)
@@ -40,7 +45,6 @@ MachineState = "WayPoint"
 
 while not QuitFlag:
     time.sleep(0.1) # We will get data every 100 ms
-
     if MachineState == "Pixy":
         #Get data from pixy and rotate till we are facing the cone.
         ConeAngle = PixySensor.getReading()
