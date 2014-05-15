@@ -10,17 +10,23 @@ import rgb
 import bump
 import wifiswitch
 import screenlogger
+import sys
 
 QuitFlag = False
-
+print "Hello World"
 # Ctrl-c handler
 def ctrlC(signal, frame):
-    global Quitflag
+    global QuitFlag
     PixySensor.quit()
     Rover.Stop()
+    WayPointSensor.quit()    
+    Bump.quit()
     QuitFlag = True
+    time.sleep(2)
+    sys.exit(0)
 
 signal.signal(signal.SIGINT,ctrlC)
+signal.signal(signal.SIGABRT,ctrlC)
 
 # Initialize rover
 Rover = rover.Rover()
@@ -31,7 +37,7 @@ Led = rgb.RGBController()
 
 #Initialize Bump Sensor
 Bump = bump.BumpSensor("BumpSensor")
-Bump.start(None)
+Bump.start()
 
 #Initialize Wifi Kill Switch
 KillSwitch = wifiswitch.WifiSwitch("KillSwitch", host_ip = "172.20.10.1")
@@ -39,7 +45,7 @@ KillSwitch = wifiswitch.WifiSwitch("KillSwitch", host_ip = "172.20.10.1")
 
 # Initialize Pixy
 PixySensor = pixyTracker.pixyController('pixy')
-PixySensor.start(None)
+PixySensor.start()
 PixyTimeCounter = 0
 
 # Initialize WayPoint Sensr (GPS, COMPAS)
@@ -52,7 +58,7 @@ FromStop = 13
 WhileMoving = 5
 
 # Initia; State
-MachineState = "WayPoint"
+MachineState = "PixyScan" #"WayPoint"
 
 # Initialize screen logger message
 ScreenLog = screenlogger.ScreenLogger(WayPointSensor.logToScreen, verbose = True)
@@ -63,7 +69,21 @@ while not QuitFlag:
     time.sleep(0.1) # We will get data every 100 ms
     
     if True: #KillSwitch.getReading().value:
-        if MachineState == "Pixy":
+        if MachineState == "PixyScan":
+            #Sleep tracking
+            PixySensor.sleep()
+            time.sleep(0.3)
+            ConeStatus = PixySensor.PixyFullScan()
+            if ConeStatus:
+                MachineState = "PixyTrack"
+                ScreenLog.Log("Pixy Scan Found Cone")
+            else:
+                MachineState = "WayPoint"
+                ScreenLog.Log("Pixy Scan Did Not Find Cone")
+            PixySensor.wake()
+            time.sleep(1)
+            
+        elif MachineState == "PixyTrack":
             #Get data from pixy and rotate till we are facing the cone.
             ConeAngle = PixySensor.getReading()
             #print "Cone Angle:"+str(ConeAngle)
@@ -75,17 +95,21 @@ while not QuitFlag:
                 Rover.Stop()
                 for i in range(0,FromStop):
                     Rover.Reverse(RotateSpeed)
-                    time.sleep(0.1) 
+                    time.sleep(0.1)
+                time.sleep(3) 
                 Rover.Stop()    
                 for i in range(0,FromStop):
                     Rover.RotateRight(RotateSpeed)
                     time.sleep(0.1) 
+                time.sleep(2) 
                 for i in range(0,WhileMoving):
                     Rover.Forward(RotateSpeed)
                     time.sleep(0.1) 
+                time.sleep(2)
                 for i in range(0,WhileMoving):
                     Rover.RotateLeft(RotateSpeed)
-                    time.sleep(0.1) 
+                    time.sleep(0.1)
+                time.sleep(2) 
                 Rover.Stop()    
                 MachineState = "WayPoint"
                 WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
@@ -93,11 +117,8 @@ while not QuitFlag:
                 Led.allOff()
                 Led.turnOn('purple')
                 if ConeAngle.value == None:
-                    Rover.RotateRight(RotateSpeed)
-                    PixyTimeCounter += 1
-                    if PixyTimeCounter > 50:
-                        MachineState = "WayPoint"
-                        WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
+                    MachineState = "PixyScan"#"WayPoint"
+                    #WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
                 elif ConeAngle.value > 2:
                     Rover.RotateRight(RotateSpeed)
                     print "Rotate Right"
@@ -121,17 +142,21 @@ while not QuitFlag:
               Rover.Stop()
               for i in range(0,FromStop):
                   Rover.Reverse(RotateSpeed)
-                  time.sleep(0.1) 
+                  time.sleep(0.1)
+              time.sleep(3) 
               Rover.Stop()    
               for i in range(0,FromStop):
                   Rover.RotateRight(RotateSpeed)
-                  time.sleep(0.1) 
+                  time.sleep(0.1)
+              time.sleep(2) 
               for i in range(0,WhileMoving):
                   Rover.Forward(RotateSpeed)
-                  time.sleep(0.1) 
+                  time.sleep(0.1)
+              time.sleep(2) 
               for i in range(0,WhileMoving):
                   Rover.RotateLeft(RotateSpeed)
-                  time.sleep(0.1) 
+                  time.sleep(0.1)
+              time.sleep(2) 
               Rover.Stop()    
 
            elif WayPointData != None:
@@ -150,7 +175,7 @@ while not QuitFlag:
                        Led.turnOn('green')
                        time.sleep(0.5)
                        if WayPointData["nextWaypointWeight"] == 1:
-                           MachineState = "Pixy"
+                           MachineState = "PixyScan"
                            PixyTimeCounter = 0
                        else:
                            WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
@@ -163,7 +188,7 @@ while not QuitFlag:
                        Led.turnOn('green')
                        time.sleep(0.5)
                        if WayPointData["nextWaypointWeight"] == 1:
-                           MachineState = "Pixy"
+                           MachineState = "PixyScan"
                            PixyTimeCounter = 0
                        else:
                            WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
@@ -197,3 +222,5 @@ while not QuitFlag:
         ScreenLog.Log("Kill Switch enabled.")
         Led.allOff()
         Led.turnOn('red')
+sys.exit(0)
+

@@ -95,7 +95,10 @@ class pixyController(sensorState.Sensor):
     # Doesn't work need further investigation on how the servo is controlled.
     self.scan_step = int(1000/6)
     self.raw_position = 0
-    self.count = 0
+    # If Cone is already in field of view, skip scan
+    self.count = pixy_get_blocks(BLOCK_BUFFER_SIZE, self.block)
+    if self.count > 0:
+        return True
     # Go to location 0
     self.pan_gimbal.position = 0
     set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
@@ -161,3 +164,4 @@ class pixyController(sensorState.Sensor):
       while self.sleepEvent_.isSet():                      # should we sleep?
         time.sleep(0.5)
     pixy_close()
+    sys.exit(0)
