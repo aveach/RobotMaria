@@ -112,7 +112,7 @@ while not QuitFlag:
     ConeAngle = PixySensor.getReading()
     WayPointData = WayPointSensor.getReading().value
     if WayPointData != None:
-        if True:#WayPointData["killSwitch"] == 0:
+        if WayPointData["killSwitch"] == 0:
             if len(ConeWayPointBuffer) > 0: # We are currently in an area near a cone
                 if ConeTimer > MAX_CONE_TIME*WayPointData["nextWaypointWeight"]:
                     SkipCurrentCone()
