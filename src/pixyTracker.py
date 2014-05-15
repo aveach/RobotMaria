@@ -76,8 +76,6 @@ class pixyController(Sensor):
     Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc,
                     inSensorThreadProcKWArgs=kwargs, inDefaultPriority=3)
 
-    global self.run_flag
-
     # Initialize Pixy Interpreter thread #
     self.pixy_init_status = pixy_init()
 
