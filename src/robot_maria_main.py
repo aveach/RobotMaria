@@ -7,11 +7,14 @@ import pixyTracker
 import time
 import signal
 
+QuitFlag = False
 
 # Ctrl-c handler
 def ctrlC(signal, frame):
+    global Quitflag
     PixySensor.quit()
     Rover.Stop()
+    QuitFlag = True
 
 signal.signal(signal.SIGINT,ctrlC)
 
@@ -25,14 +28,14 @@ PixySensor = pixyTracker.pixyController('pixy')
 PixySensor.start(None)
 
 # Initialize WayPoint Sensr (GPS, COMPAS)
-WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
-WayPointSensor.start() 
+#WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
+#WayPointSensor.start() 
 HeadingDiff = 7
 
 # Initia; State
-MachineState = "WayPoint"
+MachineState = "Pixy"#"WayPoint"
 
-while True:
+while not QuitFlag:
     time.sleep(0.1) # We will get data every 100 ms
 
     if MachineState == "Pixy":
@@ -47,8 +50,8 @@ while True:
             Rover.RotateLeft(RotateSpeed)
         else:
             Rover.Forward(RotateSpeed)
-            #print "We found the Cone !!! Pixy Residual Angle:"+str(ConeAngle)
-            Rover.Stop()
+            print "We found the Cone !!! Pixy Residual Angle:"+str(ConeAngle)
+            #Rover.Stop()
     
 
     if MachineState == "WayPoint":
@@ -64,4 +67,10 @@ while True:
                    AngleDiff -= 360
                
                # Allow a small degree of diviation before taking action
-               if abs( 
+               if abs(AngleDiff) > HeadingDiff:
+                   if AngleDiff > 0:
+                       Rover.RotateRight(RotateSpeed)
+                   else:
+                       Rover.RotateLeft(RotateSpeed)
+               else:
+                       Rover.Forward(RotateSpeed)
