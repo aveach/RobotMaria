@@ -8,4 +8,4 @@ This directory contains:
 
 /src - this directory contains code written to run on the BeagleBone Black
 
-
+/snippets - this directory is a temp place holder for code snippets, etc... 
