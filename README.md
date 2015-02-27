@@ -4,8 +4,10 @@ git to store and organize all files pertaing to the Sensors team's robomagellan 
 
 This directory contains:
 
+/cad - this directory contains CAD files that pertain to the robomagellan project
+
 /docs - this directory contains all documents pertaining to the project, datasheets, etc...
 
-/src - this directory contains code written to run on the BeagleBone Black
+/src - this directory contains the main code to be run on the BeagleBone Black
 
 /snippets - this directory is a temp place holder for code snippets, etc... 
