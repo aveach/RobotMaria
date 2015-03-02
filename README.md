@@ -8,6 +8,8 @@ This directory contains:
 
 /docs - this directory contains all documents pertaining to the project, datasheets, etc...
 
+/snippets - this directory is a temp place holder for code snippets, etc... 
+
 /src - this directory contains the main code to be run on the BeagleBone Black
 
-/snippets - this directory is a temp place holder for code snippets, etc... 
+
