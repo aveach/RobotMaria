@@ -46,8 +46,14 @@ class RGBController(object):
             GPIO.output(self.green_pin, GPIO.LOW)
         elif color == "blue":
             GPIO.output(self.blue_pin, GPIO.LOW)
+        elif color == "yellow":
+            GPIO.output(self.red_pin, GPIO.LOW)
+            GPIO.output(self.green_pin, GPIO.LOW)
         elif color == "purple":
             GPIO.output(self.red_pin, GPIO.LOW)
+            GPIO.output(self.blue_pin, GPIO.LOW)
+        elif color == "teal":
+            GPIO.output(self.green_pin, GPIO.LOW)
             GPIO.output(self.blue_pin, GPIO.LOW)
         else:
             pass
