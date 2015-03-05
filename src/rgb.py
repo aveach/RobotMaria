@@ -3,7 +3,6 @@
 ### Class to control the RGB LED Indicator ###
 
 import Adafruit_BBIO.GPIO as GPIO
-import time
 
 class RGBController(object):
     def __init__(self, red_pin = "P8_10", green_pin = "P8_12", blue_pin =  "P8_14"):
