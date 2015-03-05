@@ -30,6 +30,9 @@ class RGBController(object):
         elif color == "purple":
             GPIO.output(self.red_pin, GPIO.HIGH)
             GPIO.output(self.blue_pin, GPIO.HIGH)
+        elif color == "teal":
+            GPIO.output(self.green_pin, GPIO.HIGH)
+            GPIO.output(self.blue_pin, GPIO.HIGH)
         else:
             pass
 
