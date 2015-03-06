@@ -3,6 +3,7 @@
 ### Class to control the RGB LED Indicator ###
 
 import Adafruit_BBIO.GPIO as GPIO
+import time
 
 class RGBController(object):
     def __init__(self, red_pin = "P8_10", green_pin = "P8_12", blue_pin =  "P8_14"):
@@ -10,6 +11,7 @@ class RGBController(object):
         self.red_pin = red_pin
         self.green_pin = green_pin
         self.blue_pin = blue_pin
+        self.blink_time = 1
 
         GPIO.setup(self.red_pin, GPIO.OUT)
         GPIO.output(self.red_pin, GPIO.LOW)
@@ -55,6 +57,46 @@ class RGBController(object):
         elif color == "teal":
             GPIO.output(self.green_pin, GPIO.LOW)
             GPIO.output(self.blue_pin, GPIO.LOW)
+        else:
+            pass
+    
+    def blink(self, color):
+        if color == "red":
+            while True:
+                self.turnOn("red")
+                time.sleep(self.blink_time)
+                self.turnOff("red")
+                time.sleep(self.blink_time)
+        elif color == "green":
+            while True:
+                self.turnOn("green")
+                time.sleep(self.blink_time)
+                self.turnOff("green")
+                time.sleep(self.blink_time)
+        elif color == "blue":
+            while True:
+                self.turnOn("blue")
+                time.sleep(self.blink_time)
+                self.turnOff("blue")
+                time.sleep(self.blink_time)
+        elif color == "yellow":
+            while True:
+                self.turnOn("yellow")
+                time.sleep(self.blink_time)
+                self.turnOff("yellow")
+                time.sleep(self.blink_time)
+        elif color == "purple":
+            while True:
+                self.turnOn("purple")
+                time.sleep(self.blink_time)
+                self.turnOff("purple")
+                time.sleep(self.blink_time)
+        elif color == "teal":
+            while True:    
+                self.turnOn("teal")
+                time.sleep(self.blink_time)
+                self.turnOff("teal")
+                time.sleep(self.blink_time)
         else:
             pass
 
