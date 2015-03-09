@@ -17,39 +17,31 @@ class EncoderController(object):
         if not self.encoderCom.isOpen():
             self.encoderCom.open()
 
-        read_one = self.encoderCom.readline().strip()
-        read_two = self.encoderCom.readline().strip()
-            if read_one.startswith("D"):
-                value = read_one[1:]
+        for i in xrange(0, 10):
+            read = self.encoderCom.readline().strip()
+            if read.startswith("D"):
+                value = read[1:]
                 value = struct.unpack('!i', value.decode('hex'))[0]
                 self.encoderCom.close()
-                return value
-            elif read_two.startswith("D"):
-                value = read_two[1:]
-                value = struct.unpack('!i', value.decode('hex'))[0]
-                self.encoderCom.close()
-                return value
+                break
             else:
-                return 0
+                pass
+        return value
 
     def getVelocity(self):
-        if not seld.encoderCom.isOpen():
+        if not self.encoderCom.isOpen():
             self.encoderCom.open()
 
-        read_one = self.encoderCom.readline().strip()
-        read_two = self.encoderCom.readline().strip()
-            if read_one.startswith("V"):
-                value = read_one[1:]
+        for i in xrange(0, 10):
+            read = self.encoderCom.readline().strip()
+            if read.startswith("V"):
+                value = read[1:]
                 value = int(value, 16)
                 self.encoderCom.close()
-                return value
-            elif read_two.startswith("V"):
-                value = read_two[1:]
-                value = int(value, 16)
-                self.encoderCom.close()
-                return value
+                break
             else:
-                return 0
+                pass
+        return value
 
     def close(self):
         self.encoderCom.close()
