@@ -11,7 +11,7 @@ class RGBController(object):
         self.red_pin = red_pin
         self.green_pin = green_pin
         self.blue_pin = blue_pin
-        self.blink_time = 1
+        self.blink_time = 0.5
 
         GPIO.setup(self.red_pin, GPIO.OUT)
         GPIO.output(self.red_pin, GPIO.LOW)
@@ -59,46 +59,41 @@ class RGBController(object):
             GPIO.output(self.blue_pin, GPIO.LOW)
         else:
             pass
-    
-    def blink(self, color):
-        if color == "red":
-            while True:
+
+    def blink(self, color, iterations=5):
+        for i in xrange(0, iterations):
+            if color == "red":
                 self.turnOn("red")
                 time.sleep(self.blink_time)
                 self.turnOff("red")
                 time.sleep(self.blink_time)
-        elif color == "green":
-            while True:
+            elif color == "green":
                 self.turnOn("green")
                 time.sleep(self.blink_time)
                 self.turnOff("green")
                 time.sleep(self.blink_time)
-        elif color == "blue":
-            while True:
+            elif color == "blue":
                 self.turnOn("blue")
                 time.sleep(self.blink_time)
                 self.turnOff("blue")
                 time.sleep(self.blink_time)
-        elif color == "yellow":
-            while True:
+            elif color == "yellow":
                 self.turnOn("yellow")
                 time.sleep(self.blink_time)
                 self.turnOff("yellow")
                 time.sleep(self.blink_time)
-        elif color == "purple":
-            while True:
+            elif color == "purple":
                 self.turnOn("purple")
                 time.sleep(self.blink_time)
                 self.turnOff("purple")
                 time.sleep(self.blink_time)
-        elif color == "teal":
-            while True:    
+            elif color == "teal":
                 self.turnOn("teal")
                 time.sleep(self.blink_time)
                 self.turnOff("teal")
                 time.sleep(self.blink_time)
-        else:
-            pass
+            else:
+                pass
 
     def allOff(self):
         GPIO.output(self.red_pin, GPIO.LOW)
