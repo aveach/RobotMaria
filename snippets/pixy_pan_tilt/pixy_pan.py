@@ -32,7 +32,7 @@ PIXY_RCS_CENTER_POS    =  ((PIXY_RCS_MAX_POS-PIXY_RCS_MIN_POS) / 2)
 PIXY_RCS_PAN_CHANNEL   =    0
 
 PAN_PROPORTIONAL_GAIN  =  400
-PAN_DERIVATIVE_GAIN    =  300
+PAN_DERIVATIVE_GAIN    =  800
 
 BLOCK_BUFFER_SIZE      =    1
 
@@ -102,7 +102,6 @@ def main():
 
   #  Initialize Gimbals #
   pan_gimbal  = Gimbal(PIXY_RCS_CENTER_POS, PAN_PROPORTIONAL_GAIN, PAN_DERIVATIVE_GAIN)
-  tilt_gimbal = Gimbal(PIXY_RCS_CENTER_POS, TILT_PROPORTIONAL_GAIN, TILT_DERIVATIVE_GAIN)
 
   # Initialize block #
   block = Block()
@@ -129,13 +128,15 @@ def main():
       # We found a block #
 
       # Calculate the difference between Pixy's center of focus #
-      # and the target.                                         #
+      # and the target.
+      #print "Pixy Center: {} -- X Block: {}".format(PIXY_X_CENTER, block.x)                                         #
       pan_error  = PIXY_X_CENTER - block.x
 
       # Apply corrections to the pan/tilt gimbals with the goal #
       # of putting the target in the center of Pixy's focus.    #
       pan_gimbal.update(pan_error)
-=
+      print "Gimbal position degrees: {}".format((1024-pan_gimbal.position)*(180/1024.0)-90)
+      
       set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, pan_gimbal.position)
 
       if set_position_result < 0:
@@ -143,7 +144,7 @@ def main():
         pixy_error(result)
         sys.exit(2)
 
-      print '[Pan error] : [%3d]' % (pan_error)
+      #print '[Pan error] : [%3d]' % (pan_error)
 
   print 'Exit!!!'
   pixy_close()
