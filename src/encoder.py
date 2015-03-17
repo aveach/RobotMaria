@@ -8,7 +8,7 @@ import struct
 
 
 class EncoderController(object):
-    def __init__(self, port="/dev/ttyO4", baudrate=38400, UART):
+    def __init__(self, port="", baudrate=38400, UART=""):
         UART.setup(UART)
         self.encoderCom = serial.Serial(port=port, baudrate=baudrate)
         self.encoderCom.close()

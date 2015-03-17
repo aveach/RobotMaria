@@ -7,7 +7,7 @@ import serial
 
 
 class SonarController(object):
-    def __init__(self, port="/dev/ttyO5", baudrate=9600, UART):
+    def __init__(self, port="", baudrate=9600, UART=""):
         UART.setup(UART)
         self.sonarCom = serial.Serial(port=port, baudrate=baudrate)
         self.sonarCom.close()
@@ -31,4 +31,3 @@ class SonarController(object):
 
     def close(self):
         self.sonarCom.close()
-
