@@ -69,9 +69,69 @@ class Gimbal ():
 
     self.previous_error = error
 
-def handle_SIGINT(signal, frame):
-  global run_flag
-  run_flag = False
+
+class pixyController(Sensor):
+  def __init__(self, inName, inDefaultPriority=3, **kwargs):
+    # boilerplate bookkeeping
+    Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc,
+                    inSensorThreadProcKWArgs=kwargs, inDefaultPriority=3)
+
+    global self.run_flag
+
+    # Initialize Pixy Interpreter thread #
+    self.pixy_init_status = pixy_init()
+
+    if self. pixy_init_status != 0:
+      pixy_error(pixy_init_status)
+      return
+
+    #  Initialize Gimbals #
+    self.pan_gimbal = Gimbal(PIXY_RCS_CENTER_POS, PAN_PROPORTIONAL_GAIN, PAN_DERIVATIVE_GAIN)
+
+    # Initialize block #
+    self.block = Block()
+
+  # service the sensor, post the value
+  def __threadProc(self, **kwargs):
+    myReading = self.initialVal_
+    while not self.quitEvent_.isSet():                     # should we quit?
+
+      # Grab a block #
+      self.count = pixy_get_blocks(BLOCK_BUFFER_SIZE, self.block)
+
+      # Was there an error? #
+      if self.count < 0:
+        print 'Error: pixy_get_blocks()'
+        pixy_error(self.count)
+        sys.exit(1)
+
+      if self.count > 0:
+        # We found a block #
+
+        # Calculate the difference between Pixy's center of focus #
+        # and the target.
+        #print "Pixy Center: {} -- X Block: {}".format(PIXY_X_CENTER, block.x)                                         #
+        self.pan_error  = PIXY_X_CENTER - self.block.x
+
+        # Apply corrections to the pan/tilt gimbals with the goal #
+        # of putting the target in the center of Pixy's focus.    #
+        pan_gimbal.update(self.pan_error)
+        self.servo_position = (1024-pan_gimbal.position)*(180/1024.0)-90
+        #print "Pixy object found at {} degrees".format(self.servo_position)
+
+        set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, pan_gimbal.position)
+
+        if set_position_result < 0:
+          print 'Error: pixy_rcs_set_position() '
+          pixy_error(result)
+          sys.exit(2)
+
+      myReading = (1024-pan_gimbal.position)*(180/1024.0)-90)                # ZarkonSensor takes one parameter, incrementBy
+      print "\Pixy %s SPEAKS: %s" % (self.name_, self.servo_position)
+      self.postReading(myReading, 1)                       # "high" priority
+      time.sleep(1)
+      while self.sleepEvent_.isSet():                      # should we sleep?
+        time.sleep(0.5)
 
 
 class pixyController(object):
