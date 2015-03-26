@@ -4,6 +4,7 @@
 
 import sys
 import signal
+import sensorState
 sys.path.append("/home/debian/pixy/build/pantilt_in_python")
 from pixy import *
 from ctypes import *
@@ -70,7 +71,7 @@ class Gimbal ():
     self.previous_error = error
 
 
-class pixyController(Sensor):
+class pixyController(sensorState.Sensor):
   def __init__(self, inName, inDefaultPriority=3, **kwargs):
     # boilerplate bookkeeping
     Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc,
