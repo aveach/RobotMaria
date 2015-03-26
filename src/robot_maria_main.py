@@ -11,12 +11,13 @@ Rover = rover.Rover()
 RotateSpeed = 1000
 
 # Initialize sensorState
-SensorState = sensorState.SensorState()
-SensorState.start()
+#SensorState = sensorState.SensorState()
+#SensorState.start()
 
 # Initialize Pixi
-PixySensor = pixyTracker.pixyController() #Place Holder
-sensorState.registerSensor(PixySensor)
+PixySensor = pixyTracker.pixyController('pixy')
+PixySensor.start(None)
+#sensorState.registerSensor(PixySensor)
 
 while 1:
     time.sleep(0.1) # We will get data from pixy every 100 ms
