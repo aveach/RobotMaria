@@ -79,7 +79,7 @@ class pixyController (object):
         global run_flag
 
         # Initialize Pixy Interpreter thread #
-        pixy_init_status = pixy_init()
+        pixy_init_status = pixy.pixy_init()
 
         if pixy_init_status != 0:
           pixy_error(pixy_init_status)
