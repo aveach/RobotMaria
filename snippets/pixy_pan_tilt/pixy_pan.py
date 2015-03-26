@@ -17,7 +17,7 @@
 
 import sys
 import signal
-sys.path.append("/home/debian/pixy/build/pantilt_in_python")
+sys.path.append("/home/debian/pixy/build/pantilt_in_python/")
 from pixy import *
 from ctypes import *
 
