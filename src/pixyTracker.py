@@ -92,7 +92,7 @@ class pixyController(sensorState.Sensor):
 
   # service the sensor, post the value
   def __threadProc(self, **kwargs):
-    myReading = self.initialVal_
+    myReading = None
     while not self.quitEvent_.isSet():                     # should we quit?
 
       # Grab a block #
@@ -126,7 +126,7 @@ class pixyController(sensorState.Sensor):
           sys.exit(2)
 
       myReading = (1024-pan_gimbal.position)*(180/1024.0)-90)                # ZarkonSensor takes one parameter, incrementBy
-      print "\Pixy %s SPEAKS: %s" % (self.name_, self.servo_position)
+      print "\Pixy %s SPEAKS: %s" % (self.name_, myReading)
       self.postReading(myReading, 1)                       # "high" priority
       time.sleep(1)
       while self.sleepEvent_.isSet():                      # should we sleep?
