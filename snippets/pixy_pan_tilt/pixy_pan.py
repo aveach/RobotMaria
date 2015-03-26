@@ -102,7 +102,7 @@ def main():
     return
 
   #  Initialize Gimbals #
-  pan_gimbal  = Gimbal(PIXY_RCS_CENTER_POS, PAN_PROPORTIONAL_GAIN, PAN_DERIVATIVE_GAIN)
+  pan_gimbal = Gimbal(PIXY_RCS_CENTER_POS, PAN_PROPORTIONAL_GAIN, PAN_DERIVATIVE_GAIN)
 
   # Initialize block #
   block = Block()
@@ -137,7 +137,7 @@ def main():
       # of putting the target in the center of Pixy's focus.    #
       pan_gimbal.update(pan_error)
       print "Gimbal position degrees: {}".format((1024-pan_gimbal.position)*(180/1024.0)-90)
-      
+
       set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, pan_gimbal.position)
 
       if set_position_result < 0:
