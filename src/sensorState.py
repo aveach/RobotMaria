@@ -3,7 +3,7 @@
 
 #
 #
-#  Pure Big Mad Boat Men sample sensor implementation, v0.1
+#  Pure Big Mad Boat Men sample sensor implementation, v0.3
 #
 #
 
@@ -11,7 +11,12 @@
 import atexit
 import collections
 import datetime
+import os
 import Queue
+import serial
+import signal
+import sys
+import syslog
 import threading
 import time
 
@@ -21,6 +26,34 @@ import random
 
 
 #### util
+
+## quit gracefully, kill all threads
+gThreadMap = {}
+def ctrlCHandler(signal, frame):
+  print "  CTRL-C HANDLER CALLED"
+  for k,v in gThreadMap.items():
+    try:
+      v.quit()
+    except:
+      pass
+  os._exit(0)
+
+signal.signal(signal.SIGINT, ctrlCHandler)
+
+
+## syslog
+syslog.openlog('RobotMaria', os.getpid(), syslog.LOG_DAEMON)
+
+def logDebug(inMsg):
+  syslog.syslog(syslog.LOG_DEBUG, "DEBUG " + str(inMsg))
+
+def logInfo(inMsg):
+  syslog.syslog(syslog.LOG_INFO, "INFO " + str(inMsg))
+
+def logErr(inMsg):
+  syslog.syslog(syslog.LOG_ERR, "ERROR " + str(inMsg))
+
+##
 def ForceDtor(cls):
   """ class decorator to force __del__ call at process exit
   """
@@ -51,9 +84,9 @@ class StateMachine(object):
     try:
        handler = self.handlers_[self.startState_]
     except:
-      raise "InitializationError", "must call .set_start() before .run()"
+      raise Exception("InitializationError", "must call .set_start() before .run()")
     if not self.endStates_:
-      raise "InitializationError", "at least one state must be an end_state"
+      raise Exception("InitializationError", "at least one state must be an end_state")
     while 1:
       (newState, cargo) = handler(cargo)
       if newState.lower() in self.endStates_:
@@ -154,6 +187,7 @@ class SensorState(object):
 #### a sensor
 class Sensor(object):
   def __init__(self, inName, inSensorThreadProc, inSensorThreadProcKWArgs={}, inDefaultPriority=3):
+    global gThreadMap
     try:
       self.name_ = inName
       self.defaultPriority_ = inDefaultPriority
@@ -166,24 +200,34 @@ class Sensor(object):
       self.outputQueue_ = None
       self.quitEvent_ = threading.Event()
       self.sleepEvent_ = threading.Event()
+      if inName in gThreadMap:
+        errStr = "[ERROR] sensor name %s already exists\n" % (self.name_)
+        logErr(errStr)
+        raise Exception("InitializationError " + errStr)
+      gThreadMap[inName] = self
+
     except Exception, err:
       errStr = "[ERROR] setting up sensor %s  %s\n" % (inName, err)
-      sys.stderr.write(errStr)
-      raise "InitializationError", errStr
+      logErr(errStr)
+      raise Exception("InitializationError " + errStr)
 
   def __del__(self):
     self.quit()
 
-  def start(self, inOuputQueue):
+  def start(self, inOuputQueue=None):
     self.outputQueue_ = inOuputQueue
     self.sensorThread_.start()
 
   def quit(self):
     try:
       self.sleepEvent_.clear()
+    except:
+      pass
+    try:
       self.quitEvent_.set()
     except:
       pass
+    print "THREAD QUIT COMPLETE", self.name_
 
   def sleep(self):
     self.sleepEvent_.set()
@@ -202,13 +246,15 @@ class Sensor(object):
     if None == inPriority:
       inPriority = self.defaultPriority_
     if None == self.outputQueue_:
-      errStr = "[ERROR] %s sensor start() not called\n" % (self.name_)
-#      sys.stderr.write(errStr)
-#      raise "StartError", errStr
+      pass
+#      errStr = "[ERROR] %s sensor start() not called\n" % (self.name_)
+#      logErr(errStr)
+#      raise Exception("StartError " + errStr)
     else:
       self.outputQueue_.put((inPriority, self.name_, self.currentValue_, self.updatedDatetime_))
 
 
+    
 
 
 
@@ -216,55 +262,99 @@ class Sensor(object):
 
 #### example sensors
 
-class ZarkonSensor(Sensor):
+class FakeWaypointSensor(Sensor):
   def __init__(self, inName, inDefaultPriority=3, **kwargs):
     # boilerplate bookkeeping
     Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc, 
-                    inSensorThreadProcKWArgs=kwargs, inDefaultPriority=3)
-
-    self.initialVal_ = 1                                   # ZarkonSensor-specific member data
-      
+                    inSensorThreadProcKWArgs=kwargs, inDefaultPriority=2)
+ 
   # service the sensor, post the value 
   def __threadProc(self, **kwargs):
-    myReading = self.initialVal_
     while not self.quitEvent_.isSet():                     # should we quit?
-      # generate some scalar ODD INTEGER sensor readings
-      myReading += kwargs["incrementBy"]                   # ZarkonSensor takes one parameter, incrementBy
-      print "\tZARKON %s SPEAKS: %s" % (self.name_, str(myReading))
-      self.postReading(myReading, 1)                       # "high" priority
+      sensorReadMap = {
+        "direction": 180,                   
+        "distanceToNextWaypoint": 200,       
+        "headingToNextWaypoint": 181,        
+        "currentHorizontalAccuracy": 50,    
+        "nextWaypointWeight": 0.3         
+      }
+
+#      sys.stdout.write('\a')   # annoy
+
+      print "\tFakeWaypointSensor %s SPEAKS: %s" % (self.name_, str(sensorReadMap))
+      self.postReading(sensorReadMap, 2)                   # "medium" priority
       time.sleep(1)
-      while self.sleepEvent_.isSet():                      # should we sleep?
-        time.sleep(0.5)
-
-
-
-class FweepSensor(Sensor):
-  def __init__(self, inName, inDefaultPriority=3, **kwargs):
-    Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc, 
-                    inSensorThreadProcKWArgs=kwargs, inDefaultPriority=3)
-    
-    self.sum_ = 0                                          # fweep sensors need averaging
-    self.numSamples_ = 0
-
-  def __threadProc(self, **kwargs):
-    myReading = [0, 2.0]
-    while not self.quitEvent_.isSet():
-      # generate some vector (list) EVEN FLOAT sensor readings
-      myReading[0] += 2.0
-      myReading[1] = random.random()
-      self.sum_ += myReading[1]
-      self.numSamples_ += 1
-      print "\tFWEEP %s SPEAKS: %s" % (self.name_, str(myReading))
-      self.postReading(myReading)
-      time.sleep(1.9)
       while self.sleepEvent_.isSet():
         time.sleep(0.5)
 
-  def average(self):                                       # some additional functionality needed for fweeps
+
+
+class WaypointSensor(Sensor):
+  kSampleIntervalSecs = 0.2
+  kExpectedReadSize = 18
+  kSerialPortName = "/dev/tty.usbserial-A603RM49"
+  kSerialBaudRate = 38400
+
+  def __init__(self, inName, inDefaultPriority=2, **kwargs):
+    Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc, 
+                    inSensorThreadProcKWArgs=kwargs, inDefaultPriority=2)
+    self.sensorReadMap_ = {
+        "direction": 0,                       # ex: 180 degrees (south)
+        "distanceToNextWaypoint": 0,          # ex: 200 meters
+        "headingToNextWaypoint": 0,           # ex: 90 degrees (east)
+        "currentHorizontalAccuracy": 0,       # ex: 10 meters
+        "nextWaypointWeight": 0.0             # ex: 0.9 cone value
+     }
     try:
-      return float(self.sum_) / self.numSamples_
+      self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate)
+    except Exception, err:
+      errStr = "[ERROR] opening serial port %s \t%s\n" % (self.kSerialPortName, err)
+      logErr(errStr)
+      raise Exception("InitializationError", "")
+  def __threadProc(self, **kwargs):
+    while not self.quitEvent_.isSet():
+      try:
+        try:
+          self.serialPort_.flushInput()
+        except:
+          pass
+        response = self.serialPort_.readline()
+        if self.kExpectedReadSize == len(response):
+          self.sensorReadMap_["direction"] = int(response[0:3])
+          self.sensorReadMap_["distanceToNextWaypoint"] = int(response[3:7])
+          self.sensorReadMap_["headingToNextWaypoint"] = int(response[7:10])
+          self.sensorReadMap_["currentHorizontalAccuracy"] = int(response[10:14])
+          self.sensorReadMap_["nextWaypointWeight"] = float(response[14:])
+        else:
+          continue
+      except Exception, err:
+        errStr = "[ERROR] reading from serial port %s \t%s\n" % (self.kSerialPortName, err)
+        logErr(errStr)
+        try:
+          self.serialPort_.close()
+        except:
+          pass
+        time.sleep(0.5)
+        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate)
+        continue
+      print "WaypointSensor %s SPEAKS: %s" % (self.name_, str(self.sensorReadMap_))
+#      logErr("-->WaypointSensor %s SPEAKS: %s" % (self.name_, str(self.sensorReadMap_)))
+      self.postReading(self.sensorReadMap_)             
+      time.sleep(self.kSampleIntervalSecs)
+      if self.sleepEvent_.isSet():
+        try:
+          self.serialPort_.close()
+        except:
+          pass 
+        while self.sleepEvent_.isSet():
+          time.sleep(0.5)
+        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate)
+    # after quit
+    try:
+      self.serialPort_.close()
     except:
-      return float('NaN')
+      pass
+
 
 
 
@@ -274,21 +364,10 @@ class FweepSensor(Sensor):
 
 if  "__main__" == __name__: 
 
-  ## state of all of our sensors
-  sensorState = SensorState()
-  sensorState.start()
-
   ## add a sensor
-  zarkonSensor1 = ZarkonSensor("zarkon1", incrementBy=2)
-  sensorState.registerSensor(zarkonSensor1)
+  waypointSensor = WaypointSensor("WaypointSensor")
+  waypointSensor.start()
 
-  ## add another sensor of the same type
-  zarkonSensor2 = ZarkonSensor("zarkon2", incrementBy=42)
-  sensorState.registerSensor(zarkonSensor2)
-
-  ## add another sensor of a different type
-  fweepSensor = FweepSensor("fweep1")
-  sensorState.registerSensor(fweepSensor)
 
   ## do something in main thread "loop"
   while 1:
@@ -296,25 +375,7 @@ if  "__main__" == __name__:
     for i in xrange(3):
       print "MAIN", i
       time.sleep(5)
-      print "zarkon1 value:", sensorState.getReading("zarkon1")   # get individual sensor value from global sensors state
+      print "waypointSensor value:", waypointSensor.getReading()  
   
-    fweepSensor.sleep()                # put one sensor to sleep
 
-    print ("=" * 50), "fweep sleeps"
-    for i in xrange(3):
-      print "MAIN", i
-      time.sleep(5)
-      print "zarkon1 value:", zarkonSensor1.getReading()          # get individual sensor value from sensor
-
-    fweepSensor.wake()                 # wake it up
-
-    print ("=" * 50), "fweep wakes"
-    for i in xrange(3):
-      print "MAIN", i
-      time.sleep(5)
-      sensorState.dump()                                          # get all sensor values from global sensors state
-      print "FWEEP AVERAGE:", fweepSensor.average()
-
-    ## clear all sensor values
-    sensorState.reset()
 
