@@ -3,7 +3,7 @@
 
 #
 #
-#  Pure Big Mad Boat Men sample sensor implementation, v0.3
+#  Pure Big Mad Boat Men sample sensor implementation, v0.4
 #
 #
 
@@ -20,8 +20,6 @@ import syslog
 import threading
 import time
 
-## for example only
-import random
 
 
 
@@ -272,6 +270,7 @@ class FakeWaypointSensor(Sensor):
   def __threadProc(self, **kwargs):
     while not self.quitEvent_.isSet():                     # should we quit?
       sensorReadMap = {
+        "nextWaypoint": 0,
         "direction": 180,                   
         "distanceToNextWaypoint": 200,       
         "headingToNextWaypoint": 181,        
@@ -291,14 +290,19 @@ class FakeWaypointSensor(Sensor):
 
 class WaypointSensor(Sensor):
   kSampleIntervalSecs = 0.2
-  kExpectedReadSize = 18
+  kExpectedReadSize = 21
   kSerialPortName = "/dev/tty.usbserial-A603RM49"
   kSerialBaudRate = 38400
+  kWriteTimeout = 1
+  kRobotStateTextMaxSize = 20
 
   def __init__(self, inName, inDefaultPriority=2, **kwargs):
     Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc, 
                     inSensorThreadProcKWArgs=kwargs, inDefaultPriority=2)
+    self.nextWaypointNum_ = 2
+    self.robotStateText_ = (" " * self.kRobotStateTextMaxSize)
     self.sensorReadMap_ = {
+        "nextWaypoint": 0,                    # ex: 2
         "direction": 0,                       # ex: 180 degrees (south)
         "distanceToNextWaypoint": 0,          # ex: 200 meters
         "headingToNextWaypoint": 0,           # ex: 90 degrees (east)
@@ -306,11 +310,12 @@ class WaypointSensor(Sensor):
         "nextWaypointWeight": 0.0             # ex: 0.9 cone value
      }
     try:
-      self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate)
+      self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
     except Exception, err:
       errStr = "[ERROR] opening serial port %s \t%s\n" % (self.kSerialPortName, err)
       logErr(errStr)
       raise Exception("InitializationError", "")
+
   def __threadProc(self, **kwargs):
     while not self.quitEvent_.isSet():
       try:
@@ -319,12 +324,14 @@ class WaypointSensor(Sensor):
         except:
           pass
         response = self.serialPort_.readline()
-        if self.kExpectedReadSize == len(response):
-          self.sensorReadMap_["direction"] = int(response[0:3])
-          self.sensorReadMap_["distanceToNextWaypoint"] = int(response[3:7])
-          self.sensorReadMap_["headingToNextWaypoint"] = int(response[7:10])
-          self.sensorReadMap_["currentHorizontalAccuracy"] = int(response[10:14])
-          self.sensorReadMap_["nextWaypointWeight"] = float(response[14:])
+        nextWaypoint = int(response[:3])
+        if (self.kExpectedReadSize == len(response)) and (nextWaypoint == self.nextWaypointNum_):
+          self.sensorReadMap_["nextWaypoint"] = nextWaypoint
+          self.sensorReadMap_["direction"] = int(response[3:6])
+          self.sensorReadMap_["distanceToNextWaypoint"] = int(response[6:10])
+          self.sensorReadMap_["headingToNextWaypoint"] = int(response[10:13])
+          self.sensorReadMap_["currentHorizontalAccuracy"] = int(response[13:17])
+          self.sensorReadMap_["nextWaypointWeight"] = float(response[17:])
         else:
           continue
       except Exception, err:
@@ -335,7 +342,7 @@ class WaypointSensor(Sensor):
         except:
           pass
         time.sleep(0.5)
-        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate)
+        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
         continue
       print "WaypointSensor %s SPEAKS: %s" % (self.name_, str(self.sensorReadMap_))
 #      logErr("-->WaypointSensor %s SPEAKS: %s" % (self.name_, str(self.sensorReadMap_)))
@@ -348,7 +355,7 @@ class WaypointSensor(Sensor):
           pass 
         while self.sleepEvent_.isSet():
           time.sleep(0.5)
-        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate)
+        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
     # after quit
     try:
       self.serialPort_.close()
@@ -356,7 +363,49 @@ class WaypointSensor(Sensor):
       pass
 
 
+  def __write__(self, inWriteStr):
+    while 1:
+      try:
+        print ("NOW WRITING LEN %d |" % (len(inWriteStr))) + inWriteStr + "|"
+        numBytesWritten = self.serialPort_.write(inWriteStr + "\0")
+        if numBytesWritten == (len(inWriteStr)+1):
+          break
+      except Exception, err:
+        errStr = "[ERROR] writing to serial port %s \t%s\n" % (self.kSerialPortName, err)
+        logErr(errStr)
+        try:
+          self.serialPort_.close()
+        except:
+          pass
+        time.sleep(0.5)
+        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
+        continue
+  
 
+  # waypoints are numbered starting with 1, next waypoint is always >= 2
+  def setNextWaypoint(self, inNextWaypointNum):
+    if (inNextWaypointNum < 2) or (inNextWaypointNum > 999):
+      errStr = "[ERROR] attempt to set bad waypoint number %s" % (str(inNextWaypointNum))
+      logErr(errStr)
+      return      
+    self.nextWaypointNum_ = int(inNextWaypointNum)
+    writeStr = "%03d" % (self.nextWaypointNum_)
+    self.__write__(writeStr + '\0')
+
+
+  def setRobotStateText(self, inRobotStateText):
+    # always pad to max size for serial write
+    self.robotStateText_ = (inRobotStateText + (" " * self.kRobotStateTextMaxSize))[:self.kRobotStateTextMaxSize]
+    writeStr = "%03d" % (self.nextWaypointNum_)
+    writeStr += (self.robotStateText_)
+    self.__write__(writeStr + '\0')
+
+
+  def logToScreen(self, inLogText):
+    writeStr = "%03d" % (self.nextWaypointNum_)
+    writeStr += (self.robotStateText_)
+    writeStr += (inLogText)
+    self.__write__(writeStr + '\0')
 
 
 
@@ -376,6 +425,3 @@ if  "__main__" == __name__:
       print "MAIN", i
       time.sleep(5)
       print "waypointSensor value:", waypointSensor.getReading()  
-  
-
-
