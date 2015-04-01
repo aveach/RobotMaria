@@ -15,9 +15,10 @@ class BumpSensor(object):
         GPIO.setup(self.tan_pin, GPIO.IN)
 
     def didBump():
+        old_switch_state = 0
         while True:
-            if not (GPIO.input(self.black_pin) or GPIO.input(self.tan_pin)):
-                print "bump"
-                return 1
-            else:
-                pass
+            new_switch_state = GPIO.input(self.black_pin) or GPIO.input(self.tan_pin)
+            if new_switch_state == 1 and old_switch_state == 0 :
+                print 'Button Pressed!'
+                time.sleep(0.1)
+                old_switch_state = new_switch_state
