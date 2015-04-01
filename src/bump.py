@@ -15,8 +15,9 @@ class BumpSensor(object):
         GPIO.setup(self.tan_pin, GPIO.IN)
 
     def didBump():
-        if not (GPIO.input(self.black_pin) or GPIO.input(self.tan_pin)):
-            print "bump"
-            return 1
-        else:
-            pass
+        while True:
+            if not (GPIO.input(self.black_pin) or GPIO.input(self.tan_pin)):
+                print "bump"
+                return 1
+            else:
+                pass
