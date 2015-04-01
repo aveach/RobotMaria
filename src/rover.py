@@ -2,16 +2,26 @@
 import motor
 import time
 
+class MotorEmulate():
+    def __init__(self):
+        return
+    def setSpeed(self,speed):
+        print speed
+        return
 
 class Rover():
-    def __init__(self):
-        self.m1 = motor.MotorController('/dev/ttyACM0')
-        self.m2 = motor.MotorController('/dev/ttyACM1')
-        self.Reset()
-        self.speed = 0
+    def __init__(self, emulate = False):
+        if not emulate:
+            self.m1 = motor.MotorController('/dev/ttyACM0')
+            self.m2 = motor.MotorController('/dev/ttyACM1')
+            self.Reset()
+        else:
+            self.m1 = MotorEmulate()
+            self.m2 = MotorEmulate()
+        self.speed = [0,0]
         self.accel = 1500
         self.cycle_time = 200 #ms
-	self.speed_steps = 100
+        self.speed_steps = 100
         self.state = "STOP"
         self.new_state = None
         return
@@ -20,39 +30,43 @@ class Rover():
         self.state = "STOP"
         self.m1.setSpeed(0)
         self.m2.setSpeed(0)
-        self.speed = 0
+        self.speed = [0,0]
         return 
 
     def __Move__(self, speed, m1dir, m2dir):
-	if (self.new_state == self.state) and (speed == self.speed):
-            print "Dont update, speed and direction are the same as before"
-            return True
-        if self.new_state != self.state:
-            if (self.new_state == "REVERSE") or (self.state == "REVERSE"):
-                self.Stop()
-            self.state = self.new_state
-            self.speed = int(speed/2)
-            return
-
         # Makes sure speed is between 0-3200
         if speed > 3200:
             speed = 3200
         elif speed < 0:
             speed = 0
-        # Ramp up speed
-        if self.state != "STOP":
-            print "Target speed: "+str(speed)+" Current Speed:"+str(self.speed)
-            if speed < self.speed:
-                self.sign = -1
-            elif speed > self.speed:
-                self.sign = 1
-            self.speed_diff = abs(speed-self.speed)
-            if self.speed_diff < 50:
-                self.speed += self.sign * self.speed_diff
-            else:
-                self.speed += self.sign * self.speed_steps
-            self.m1.setSpeed(int((m1dir)*self.speed))
-            self.m2.setSpeed(int((m2dir)*self.speed))
+        
+        new_speed = [int(speed*m1dir),int(speed*m2dir)] 
+        #print "New State: "+self.new_state+" New Speed: "+str(new_speed)
+        if (self.new_state == self.state) and (new_speed == self.speed):
+            #print "Dont update, speed and direction are the same as before"
+            return True
+        
+        if (self.new_state != self.state) and (self.state != "STOP") and ((self.new_state == "REVERSE") or (self.state == "REVERSE")):
+            self.Stop()
+            #print "Stop first from or to reverse"
+            return True
+    
+        # Ramp up/down speed
+        if self.new_state != "STOP":
+            #print "Target speed: "+str(speed)+" Current Speed:"+str(self.speed)
+            self.state = self.new_state
+            for i in range(len(self.speed)):
+                if new_speed[i] < self.speed[i]:
+                    self.sign = -1
+                elif new_speed[i] > self.speed[i]:
+                    self.sign = 1
+                self.speed_diff = abs(new_speed[i]-self.speed[i])
+                if self.speed_diff < self.speed_steps:
+                    self.speed[i] += self.sign * self.speed_diff
+                elif self.speed_diff >= self.speed_steps:
+                    self.speed[i] += self.sign * self.speed_steps
+            self.m1.setSpeed(self.speed[0])
+            self.m2.setSpeed(self.speed[1])
             
         return True
       
