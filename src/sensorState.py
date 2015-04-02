@@ -3,7 +3,7 @@
 
 #
 #
-#  Pure Big Mad Boat Men sample sensor implementation, v0.4
+#  Pure Big Mad Boat Men sample sensor implementation, v0.6
 #
 #
 
@@ -291,14 +291,15 @@ class FakeWaypointSensor(Sensor):
 class WaypointSensor(Sensor):
   kSampleIntervalSecs = 0.2
   kExpectedReadSize = 21
-  kSerialPortName = "/dev/ttyUSB0" #"/dev/tty.usbserial-A603RM49"
+#  kSerialPortName = "/dev/tty.usbserial-A603RM49"
+  kSerialPortName = "/dev/ttyUSB0"
   kSerialBaudRate = 38400
   kWriteTimeout = 1
   kRobotStateTextMaxSize = 20
 
   def __init__(self, inName, inDefaultPriority=2, **kwargs):
     Sensor.__init__(self, inName, inSensorThreadProc=self.__threadProc, 
-                    inSensorThreadProcKWArgs=kwargs, inDefaultPriority=2)
+                    inSensorThreadProcKWArgs=kwargs, inDefaultPriority=inDefaultPriority)
     self.nextWaypointNum_ = 2
     self.robotStateText_ = (" " * self.kRobotStateTextMaxSize)
     self.sensorReadMap_ = {
@@ -308,16 +309,37 @@ class WaypointSensor(Sensor):
         "headingToNextWaypoint": 0,           # ex: 90 degrees (east)
         "currentHorizontalAccuracy": 0,       # ex: 10 meters
         "nextWaypointWeight": 0.0             # ex: 0.9 cone value
-     }
-    try:
-      self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
-    except Exception, err:
-      errStr = "[ERROR] opening serial port %s \t%s\n" % (self.kSerialPortName, err)
-      logErr(errStr)
-      raise Exception("InitializationError", "")
+    }
+    self.serialPortName_ = self.kSerialPortName
+    if None == self.openSerialPort():
+      raise Exception("InitializationError")
+    self.writeQueue_ = Queue.PriorityQueue()
+    self.queueThread_ = threading.Thread(target=self.__queueThreadProc)
+    self.queueThread_.daemon = True
+
+
+  def openSerialPort(self):
+    for i in xrange(10):
+      try:
+        self.serialPort_ = serial.Serial(self.serialPortName_, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
+        return self.serialPort_
+      except Exception, err:
+        errStr = "[ERROR] opening serial port %s \t%s\n" % (self.serialPortName_, err)
+        logErr(errStr)
+        time.sleep(1)
+    return None
+
+
+  def start(self):
+    Sensor.start(self)
+    self.queueThread_.start()
+    
 
   def __threadProc(self, **kwargs):
+    self.setRobotStateText("START")
     while not self.quitEvent_.isSet():
+      if 0 == self.sensorReadMap_["nextWaypoint"]:
+        self.setRobotStateText("FINISH")
       try:
         try:
           self.serialPort_.flushInput()
@@ -325,24 +347,36 @@ class WaypointSensor(Sensor):
           pass
         response = self.serialPort_.readline()
         nextWaypoint = int(response[:3])
-        if (self.kExpectedReadSize == len(response)) and (nextWaypoint == self.nextWaypointNum_):
-          self.sensorReadMap_["nextWaypoint"] = nextWaypoint
+        if self.kExpectedReadSize == len(response):
           self.sensorReadMap_["direction"] = int(response[3:6])
-          self.sensorReadMap_["distanceToNextWaypoint"] = int(response[6:10])
-          self.sensorReadMap_["headingToNextWaypoint"] = int(response[10:13])
           self.sensorReadMap_["currentHorizontalAccuracy"] = int(response[13:17])
-          self.sensorReadMap_["nextWaypointWeight"] = float(response[17:])
+          if nextWaypoint == self.nextWaypointNum_:
+            self.sensorReadMap_["nextWaypoint"] = nextWaypoint
+            self.sensorReadMap_["distanceToNextWaypoint"] = int(response[6:10])
+            self.sensorReadMap_["headingToNextWaypoint"] = int(response[10:13])
+            self.sensorReadMap_["nextWaypointWeight"] = float(response[17:])
+          elif 0 == nextWaypoint:
+            self.sensorReadMap_["nextWaypoint"] = 0
+            self.sensorReadMap_["distanceToNextWaypoint"] = 0
+            self.sensorReadMap_["headingToNextWaypoint"] = 0
+            self.sensorReadMap_["nextWaypointWeight"] = 0
+            logInfo("Received waypoint == 0, course complete")
+            time.sleep(10)
+          else:
+            continue
         else:
           continue
+      except ValueError, err:
+        continue
       except Exception, err:
-        errStr = "[ERROR] reading from serial port %s \t%s\n" % (self.kSerialPortName, err)
+        errStr = "[ERROR] reading from serial port %s \t%s\n" % (self.serialPortName_, err)
         logErr(errStr)
         try:
           self.serialPort_.close()
         except:
           pass
         time.sleep(0.5)
-        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
+        self.openSerialPort()
         continue
       print "WaypointSensor %s SPEAKS: %s" % (self.name_, str(self.sensorReadMap_))
 #      logErr("-->WaypointSensor %s SPEAKS: %s" % (self.name_, str(self.sensorReadMap_)))
@@ -355,7 +389,7 @@ class WaypointSensor(Sensor):
           pass 
         while self.sleepEvent_.isSet():
           time.sleep(0.5)
-        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
+        self.openSerialPort()
     # after quit
     try:
       self.serialPort_.close()
@@ -363,7 +397,25 @@ class WaypointSensor(Sensor):
       pass
 
 
-  def __write__(self, inWriteStr):
+  def __queueThreadProc(self):
+    while not self.quitEvent_.isSet():
+      try:
+        priority, writeStr = self.writeQueue_.get(True, 0.05)
+        self.writeQueue_.task_done()
+        self.__write(writeStr + '\0')
+      except Queue.Empty:
+        continue
+      except Exception, err:
+        errStr = "[ERROR] bad serial write event queued %s\n" % (err)
+        sys.stderr.write(errStr)
+      time.sleep(0.2)
+
+
+  def write(self, inWriteStr, inPriority=2):
+      self.writeQueue_.put((inPriority, inWriteStr))
+
+
+  def __write(self, inWriteStr):
     while 1:
       try:
         print ("NOW WRITING LEN %d |" % (len(inWriteStr))) + inWriteStr + "|"
@@ -371,14 +423,14 @@ class WaypointSensor(Sensor):
         if numBytesWritten == (len(inWriteStr)+1):
           break
       except Exception, err:
-        errStr = "[ERROR] writing to serial port %s \t%s\n" % (self.kSerialPortName, err)
+        errStr = "[ERROR] writing to serial port %s \t%s\n" % (self.serialPortName_, err)
         logErr(errStr)
         try:
           self.serialPort_.close()
         except:
           pass
         time.sleep(0.5)
-        self.serialPort_ = serial.Serial(self.kSerialPortName, self.kSerialBaudRate, writeTimeout=self.kWriteTimeout)
+        self.openSerialPort()
         continue
   
 
@@ -390,22 +442,31 @@ class WaypointSensor(Sensor):
       return      
     self.nextWaypointNum_ = int(inNextWaypointNum)
     writeStr = "%03d" % (self.nextWaypointNum_)
-    self.__write__(writeStr + '\0')
+    while 1:
+      self.write(writeStr, 1)
+      time.sleep(0.3)
+      try:
+        if self.getReading().value["nextWaypoint"] == self.nextWaypointNum_:
+          break
+        elif 0 == self.getReading().value["nextWaypoint"]:
+          self.nextWaypointNum_ = 0
+          break
+      except:
+        time.sleep(0.2)
 
 
   def setRobotStateText(self, inRobotStateText):
-    # always pad to max size for serial write
     self.robotStateText_ = (inRobotStateText + (" " * self.kRobotStateTextMaxSize))[:self.kRobotStateTextMaxSize]
     writeStr = "%03d" % (self.nextWaypointNum_)
     writeStr += (self.robotStateText_)
-    self.__write__(writeStr + '\0')
+    self.write(writeStr)
 
 
   def logToScreen(self, inLogText):
     writeStr = "%03d" % (self.nextWaypointNum_)
     writeStr += (self.robotStateText_)
     writeStr += (inLogText)
-    self.__write__(writeStr + '\0')
+    self.write(writeStr)
 
 
 
@@ -417,13 +478,23 @@ if  "__main__" == __name__:
   waypointSensor = WaypointSensor("WaypointSensor")
   waypointSensor.start()
 
+  waypointSensor.setNextWaypoint(2)
+#  waypointSensor.setRobotStateText("from sensor")
+#  waypointSensor.logToScreen("some NEW log text")
+  time.sleep(5)
+  
 
   ## do something in main thread "loop"
   while 1:
 
-    for i in xrange(3):
+    for i in xrange(5):
       print "MAIN", i
-      time.sleep(5)
+      time.sleep(1)
       print "waypointSensor value:", waypointSensor.getReading()  
+
+
+      waypointSensor.setNextWaypoint(i)
+      waypointSensor.setRobotStateText("state %d" % (i))
+      waypointSensor.logToScreen("some NEW log text %d" % (i))
 
 
