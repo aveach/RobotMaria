@@ -29,7 +29,7 @@ class BumpSensor(sensorState.Sensor):
         if switch_state == 0:
             didBump = 1
         else:
-            pass
+            didBump = 0
 
       print "\Bump sensor %s SPEAKS: %s" % (self.name_, didBump)
       self.postReading(didBump, 1)                       # "high" priority
