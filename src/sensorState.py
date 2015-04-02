@@ -425,3 +425,5 @@ if  "__main__" == __name__:
       print "MAIN", i
       time.sleep(5)
       print "waypointSensor value:", waypointSensor.getReading()  
+
+
