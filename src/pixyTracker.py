@@ -96,15 +96,16 @@ class pixyController(sensorState.Sensor):
     self.scan_step = int(1000/4)
     self.raw_position = 0
     self.count = 0
-    while self.pan_gimbal.position > self.raw_position:
-         self.pan_gimbal.update(-200)
-         set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
-         print self.pan_gimbal.position
-         time.sleep(2)
-    while (self.pan_gimbal.position < 800) and (self.count <= 0):
+    # Go to location 0
+    #while self.pan_gimbal.position > self.raw_position:
+    self.pan_gimbal.update(-1*PIXY_RCS_MAX_POS)
+    set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
+    time.sleep(3)
+    print self.pan_gimbal.position
+    while (self.pan_gimbal.position < 1000) and (self.count <= 0):
         self.pan_gimbal.update(self.scan_step)
         set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
-        time.sleep(2)
+        time.sleep(1)
         print self.pan_gimbal.position
         self.count = pixy_get_blocks(BLOCK_BUFFER_SIZE, self.block)
         self.raw_position += self.scan_step
@@ -113,7 +114,8 @@ class pixyController(sensorState.Sensor):
     if self.count > 0:
         print "Found cone while scanning. Position:"+str(self.raw_position-self.scan_step)
     else:
-        self.pan_gimbal.update(500)
+        # Center Camera
+        self.pan_gimbal.update(500-self.pan_gimbal.position)
         set_position_result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, self.pan_gimbal.position)
   
   # service the sensor, post the value
