@@ -47,6 +47,10 @@ WayPointSensor = sensorState.WaypointSensor("WaypointSensor")
 WayPointSensor.start() 
 HeadingDiff = 7
 
+# constants for ramping motors
+FromStop = 13
+WhileMoving = 5
+
 # Initia; State
 MachineState = "WayPoint"
 
@@ -69,18 +73,19 @@ while not QuitFlag:
                 Led.allOff()
                 Led.turnOn('teal')
                 Rover.Stop()
+                for i in range(0,FromStop):
+                    Rover.Reverse(RotateSpeed)
+                    time.sleep(0.1) 
                 Rover.Stop()    
-                Rover.Reverse(RotateSpeed)
-                time.sleep(3) 
-                Rover.Stop()    
-                Rover.RotateRight(RotateSpeed)
-                time.sleep(3) 
-                Rover.Stop()    
-                Rover.Forward(RotateSpeed)
-                time.sleep(3) 
-                Rover.Stop()    
-                Rover.RotateLeft(RotateSpeed)
-                time.sleep(3) 
+                for i in range(0,FromStop):
+                    Rover.RotateRight(RotateSpeed)
+                    time.sleep(0.1) 
+                for i in range(0,WhileMoving):
+                    Rover.Forward(RotateSpeed)
+                    time.sleep(0.1) 
+                for i in range(0,WhileMoving):
+                    Rover.RotateLeft(RotateSpeed)
+                    time.sleep(0.1) 
                 Rover.Stop()    
                 MachineState = "WayPoint"
                 WayPointSensor.setNextWaypoint(WayPointData["nextWaypoint"]+1)
@@ -111,20 +116,22 @@ while not QuitFlag:
               ScreenLog.Log("Bumped into something")
               Led.allOff()
               Led.turnOn('teal')
-			  # Time to avoid the obstacle by reversing, 
-			  # turning right moving forward and turning back left again
+              # Time to avoid the obstacle by reversing, 
+              # turning right moving forward and turning back left again
+              Rover.Stop()
+              for i in range(0,FromStop):
+                  Rover.Reverse(RotateSpeed)
+                  time.sleep(0.1) 
               Rover.Stop()    
-              Rover.Reverse(RotateSpeed)
-              time.sleep(3) 
-              Rover.Stop()    
-              Rover.RotateRight(RotateSpeed)
-              time.sleep(3) 
-              Rover.Stop()    
-              Rover.Forward(RotateSpeed)
-              time.sleep(3) 
-              Rover.Stop()    
-              Rover.RotateLeft(RotateSpeed)
-              time.sleep(3) 
+              for i in range(0,FromStop):
+                  Rover.RotateRight(RotateSpeed)
+                  time.sleep(0.1) 
+              for i in range(0,WhileMoving):
+                  Rover.Forward(RotateSpeed)
+                  time.sleep(0.1) 
+              for i in range(0,WhileMoving):
+                  Rover.RotateLeft(RotateSpeed)
+                  time.sleep(0.1) 
               Rover.Stop()    
 
            elif WayPointData != None:
