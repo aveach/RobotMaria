@@ -12,7 +12,7 @@ class WifiSwitch(sensorState.Sensor):
         return
 
     def CheckWifi(self):
-        ping = os.system("ping -i .1 -c 1 -W 50 "+str(self.HostIP)+" > /dev/null")
+        ping = os.system("ping -i .2 -c 1 -W 50 "+str(self.HostIP)+" > /dev/null")
         if ping == 0:
             self.WifiStatus = True
         else:
