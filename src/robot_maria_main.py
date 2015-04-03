@@ -86,7 +86,22 @@ while not QuitFlag:
               ScreenLog.Log("Bumped into something")
               Led.allOff()
               Led.turnOn('teal')
-              Rover.Stop()
+			  # Time to avoid the obstacle by reversing, 
+			  # turning right moving forward and turning back left again
+              Rover.Stop()    
+              Rover.Reverse(RotateSpeed)
+              time.sleep(3) 
+              Rover.Stop()    
+              Rover.RotateRight(RotateSpeed)
+              time.sleep(3) 
+              Rover.Stop()    
+              Rover.Forward(RotateSpeed)
+              time.sleep(3) 
+              Rover.Stop()    
+              Rover.RotateLeft(RotateSpeed)
+              time.sleep(3) 
+              Rover.Stop()    
+
            elif WayPointData != None:
                if WayPointData["nextWaypoint"] == 0:
                    ScreenLog.Log("Reached last way point.")
