@@ -82,7 +82,7 @@ class pixyController(sensorState.Sensor):
 
     if self.pixy_init_status != 0:
       pixy_error(self.pixy_init_status)
-      print "We exited before declaring shit"
+      print "Pixy failed to initialize"
       return
 
     #  Initialize Gimbals #
@@ -90,6 +90,19 @@ class pixyController(sensorState.Sensor):
 
     # Initialize block #
     self.block = Block()
+
+  def PixyFullScan(self):
+    self.scan_step = int(319/5)
+    self.raw_position = 0
+    while (slef.raw_position < 320) or (self.count > 0):
+        self.pan_gimbal.update(self.raw_position)
+        time.sleep(1)
+        self.count = pixy_get_blocks(BLOCK_BUFFER_SIZE, self.block)
+        self.raw_position += self.scan_step()
+        
+    
+    if self.count > 0:
+        print "Found cone while scanning. Position:"+str(self.raw_position-self.scan_step)
 
   # service the sensor, post the value
   def __threadProc(self, **kwargs):
@@ -125,8 +138,11 @@ class pixyController(sensorState.Sensor):
           print 'Error: pixy_rcs_set_position() '
           pixy_error(result)
           sys.exit(2)
-
-      myReading = (1024-self.pan_gimbal.position)*(180/1024.0)-90                # ZarkonSensor takes one parameter, incrementBy
+        
+        myReading = (1024-self.pan_gimbal.position)*(180/1024.0)-90                # ZarkonSensor takes one parameter, incrementBy
+      else:
+        # We want to know if no blocks were found, we will return None instead of servo position.
+        myReading = None
       print "\Pixy %s SPEAKS: %s" % (self.name_, myReading)
       self.postReading(myReading, 1)                       # "high" priority
       time.sleep(0.2)
