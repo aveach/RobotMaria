@@ -92,13 +92,15 @@ class pixyController(sensorState.Sensor):
     self.block = Block()
 
   def PixyFullScan(self):
+    # Doesn't work need further investigation on how the servo is controlled.
     self.scan_step = int(319/5)
     self.raw_position = 0
-    while (slef.raw_position < 320) or (self.count > 0):
+    self.count = 0
+    while (self.raw_position < 320) or (self.count > 0):
         self.pan_gimbal.update(self.raw_position)
         time.sleep(1)
         self.count = pixy_get_blocks(BLOCK_BUFFER_SIZE, self.block)
-        self.raw_position += self.scan_step()
+        self.raw_position += self.scan_step
         
     
     if self.count > 0:
