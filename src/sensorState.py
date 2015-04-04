@@ -3,7 +3,7 @@
 
 #
 #
-#  Pure Big Mad Boat Men sample sensor implementation, v0.6
+#  Pure Big Mad Boat Men sample sensor implementation, v0.7
 #
 #
 
@@ -271,6 +271,7 @@ class FakeWaypointSensor(Sensor):
     while not self.quitEvent_.isSet():                     # should we quit?
       sensorReadMap = {
         "nextWaypoint": 0,
+        "killSwitch": 0,
         "direction": 180,                   
         "distanceToNextWaypoint": 200,       
         "headingToNextWaypoint": 181,        
@@ -290,7 +291,7 @@ class FakeWaypointSensor(Sensor):
 
 class WaypointSensor(Sensor):
   kSampleIntervalSecs = 0.2
-  kExpectedReadSize = 21
+  kExpectedReadSize = 22
 #  kSerialPortName = "/dev/tty.usbserial-A603RM49"
   kSerialPortName = "/dev/ttyUSB0"
   kSerialBaudRate = 38400
@@ -304,6 +305,7 @@ class WaypointSensor(Sensor):
     self.robotStateText_ = (" " * self.kRobotStateTextMaxSize)
     self.sensorReadMap_ = {
         "nextWaypoint": 0,                    # ex: 2
+        "killSwitch": 0,                      # ex: 0 boolean
         "direction": 0,                       # ex: 180 degrees (south)
         "distanceToNextWaypoint": 0,          # ex: 200 meters
         "headingToNextWaypoint": 0,           # ex: 90 degrees (east)
@@ -348,13 +350,14 @@ class WaypointSensor(Sensor):
         response = self.serialPort_.readline()
         nextWaypoint = int(response[:3])
         if self.kExpectedReadSize == len(response):
-          self.sensorReadMap_["direction"] = int(response[3:6])
-          self.sensorReadMap_["currentHorizontalAccuracy"] = int(response[13:17])
+          self.sensorReadMap_["killSwitch"] = int(response[3:4])
+          self.sensorReadMap_["direction"] = int(response[4:7])
+          self.sensorReadMap_["currentHorizontalAccuracy"] = int(response[14:18])
           if nextWaypoint == self.nextWaypointNum_:
             self.sensorReadMap_["nextWaypoint"] = nextWaypoint
-            self.sensorReadMap_["distanceToNextWaypoint"] = int(response[6:10])
-            self.sensorReadMap_["headingToNextWaypoint"] = int(response[10:13])
-            self.sensorReadMap_["nextWaypointWeight"] = float(response[17:])
+            self.sensorReadMap_["distanceToNextWaypoint"] = int(response[7:11])
+            self.sensorReadMap_["headingToNextWaypoint"] = int(response[11:14])
+            self.sensorReadMap_["nextWaypointWeight"] = float(response[18:])
           elif 0 == nextWaypoint:
             self.sensorReadMap_["nextWaypoint"] = 0
             self.sensorReadMap_["distanceToNextWaypoint"] = 0
